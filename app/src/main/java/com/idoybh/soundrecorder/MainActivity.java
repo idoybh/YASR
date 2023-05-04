@@ -1,6 +1,8 @@
 package com.idoybh.soundrecorder;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -16,9 +18,16 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.idoybh.soundrecorder.databinding.ActivityMainBinding;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int PERMISSION_REQUEST_CODE = 0x1A;
 
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
@@ -37,16 +46,34 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
         // permission setup
-        MaterialAlertDialogBuilder(context,
-                R.style.ThemeOverlay_MaterialComponents_MaterialAlertDialog_FullWidthButtons)
-                .setMessage(resources.getString(R.string.long_message))
-                .setNegativeButton(resources.getString(R.string.decline)) { dialog, which ->
-            // Respond to negative button press
-        }
-        .setPositiveButton(resources.getString(R.string.accept)) { dialog, which ->
-            // Respond to positive button press
-        }
-        .show()
+// TODO: Solve theme issue in:
+
+//        (new MaterialAlertDialogBuilder(getApplicationContext())
+//                .setMessage(R.string.permission_dialog_msg)
+//                .setPositiveButton(R.string.button_ok, null)
+//                .setNegativeButton(R.string.button_exit, (dialog, which) -> finishAndRemoveTask())
+//                .setOnCancelListener(dialog -> finishAndRemoveTask())
+//        ).show();
+
+        List<String> missingPerms = new ArrayList<>(List.of(
+                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.RECORD_AUDIO
+        ));
+        missingPerms.removeIf(perm -> getApplicationContext().checkSelfPermission(perm)
+                == PackageManager.PERMISSION_GRANTED);
+        if (missingPerms.size() == 0) return;
+        String[] arr = new String[missingPerms.size()];
+        arr = missingPerms.toArray(arr);
+        requestPermissions(arr, PERMISSION_REQUEST_CODE);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NotNull String[] permissions, @NotNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != PERMISSION_REQUEST_CODE) return;
+        for (Integer result : grantResults)
+            if (result != PackageManager.PERMISSION_GRANTED)
+                finishAndRemoveTask();
     }
 
     @Override

@@ -10,4 +10,9 @@
     <string name="recording_settings">recording settings</string>
     <string name="save_recording">save recording</string>
     <string name="text_name_label">Name</string>
+    <string name="permission_dialog_msg">The app needs the notification, files and microhpone permissions to function
+        properly
+    </string>
+    <string name="button_ok">OK</string>
+    <string name="button_exit">Exit</string>
 </resources>
