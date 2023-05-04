@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">SoundRecorder</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">SoundRecorder</string>
+    <string name="record_fragment_label">Add a recording</string>
+
+    <string name="add_recording">Add recording</string>
+    <string name="start_recording">Start recording</string>
+    <string name="recording_settings">recording settings</string>
+    <string name="save_recording">save recording</string>
+    <string name="text_name_label">Name</string>
+</resources>
