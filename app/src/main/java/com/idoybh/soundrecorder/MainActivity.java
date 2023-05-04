@@ -2,6 +2,7 @@ package com.idoybh.soundrecorder;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -10,6 +11,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,13 +24,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.idoybh.soundrecorder.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
     private static final int PERMISSION_REQUEST_CODE = 0x1A;
-
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -39,32 +40,38 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setSupportActionBar(binding.toolbar);
-
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
         // permission setup
-// TODO: Solve theme issue in:
-
-//        (new MaterialAlertDialogBuilder(getApplicationContext())
-//                .setMessage(R.string.permission_dialog_msg)
-//                .setPositiveButton(R.string.button_ok, null)
-//                .setNegativeButton(R.string.button_exit, (dialog, which) -> finishAndRemoveTask())
-//                .setOnCancelListener(dialog -> finishAndRemoveTask())
-//        ).show();
-
         List<String> missingPerms = new ArrayList<>(List.of(
                 Manifest.permission.POST_NOTIFICATIONS,
                 Manifest.permission.RECORD_AUDIO
         ));
         missingPerms.removeIf(perm -> getApplicationContext().checkSelfPermission(perm)
                 == PackageManager.PERMISSION_GRANTED);
-        if (missingPerms.size() == 0) return;
-        String[] arr = new String[missingPerms.size()];
-        arr = missingPerms.toArray(arr);
-        requestPermissions(arr, PERMISSION_REQUEST_CODE);
+        if (missingPerms.size() != 0) {
+            showCriticalExitDialog(R.string.permission_dialog_msg, (dialog, which) -> {
+                String[] arr = new String[missingPerms.size()];
+                arr = missingPerms.toArray(arr);
+                requestPermissions(arr, PERMISSION_REQUEST_CODE);
+            });
+        }
+
+        List<File> recordings = new ArrayList<>();
+        File fileDir = getFilesDir();
+        File[] files = fileDir.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isDirectory()) continue;
+            final String fileName = file.getName();
+            final String ext = fileName.substring(fileName.lastIndexOf("."));
+            final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+            if (mime.contains("audio")) {
+                recordings.add(file);
+            }
+        }
     }
 
     @Override
@@ -120,5 +127,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    private void showCriticalExitDialog(int msgResID, DialogInterface.OnClickListener listener) {
+        (new MaterialAlertDialogBuilder(MainActivity.this)
+                .setMessage(msgResID)
+                .setPositiveButton(R.string.button_ok, listener)
+                .setNegativeButton(R.string.button_exit, (dialog, which) -> finishAndRemoveTask())
+                .setOnCancelListener(dialog -> finishAndRemoveTask())
+        ).show();
     }
 }

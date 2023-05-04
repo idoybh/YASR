@@ -3,7 +3,6 @@
           xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
     <application
@@ -18,7 +17,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SoundRecorder.NoActionBar">
+            android:theme="@style/Theme.SoundRecorder">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
