@@ -15,4 +15,5 @@
     </string>
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
+    <string name="service_notification_text">Audio recording in progress</string>
 </resources>
