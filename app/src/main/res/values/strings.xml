@@ -9,11 +9,23 @@
     <string name="start_recording">Start recording</string>
     <string name="recording_settings">recording settings</string>
     <string name="save_recording">save recording</string>
-    <string name="text_name_label">Name</string>
-    <string name="permission_dialog_msg">The app needs the notification, files and microhpone permissions to function
-        properly
-    </string>
+    <string name="text_name_label">File name</string>
+    <string name="permission_dialog_msg">The app needs the notification, files and microphone permissions to function properly</string>
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
     <string name="service_notification_text">Audio recording in progress</string>
+    <string name="out_selector_mp4">mp4</string>
+    <string name="out_selector_3gp">3gp</string>
+    <string name="unit_meters">m</string>
+    <string name="locating">Locating…</string>
+    <string name="location_access_denied">Location access denied</string>
+    <string name="hd">HD</string>
+    <string name="sd">SD</string>
+    <string name="ld">LD</string>
+    <string name="audio_device">Audio Device</string>
+    <string name="stereo">2</string>
+    <string name="mono">1</string>
+    <string name="quality_txt">Quality:</string>
+    <string name="output_txt">Format:</string>
+    <string name="chennels_txt">Chennels:</string>
 </resources>

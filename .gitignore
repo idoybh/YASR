@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+gradle/android.lock
+gradle/android/
+gradle/caches/
+gradle/daemon/
+gradle/native/
+gradle/wrapper/dists/

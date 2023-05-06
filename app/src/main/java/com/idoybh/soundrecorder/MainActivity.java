@@ -66,9 +66,9 @@ public class MainActivity extends AppCompatActivity {
         for (File file : files) {
             if (file.isDirectory()) continue;
             final String fileName = file.getName();
-            final String ext = fileName.substring(fileName.lastIndexOf("."));
+            final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
             final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-            if (mime.contains("audio")) {
+            if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
                 recordings.add(file);
             }
         }

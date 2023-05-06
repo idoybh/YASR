@@ -2,16 +2,14 @@
     <!-- Base application theme. -->
     <style name="Theme.SoundRecorder" parent="Theme.Material3.DayNight">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">@android:color/system_accent1_100</item>
+        <item name="colorPrimaryVariant">@android:color/system_accent1_200</item>
+        <item name="colorOnPrimary">@android:color/system_accent1_900</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+        <item name="colorSecondary">@android:color/system_accent2_100</item>
+        <item name="colorSecondaryVariant">@android:color/system_accent2_200</item>
+        <item name="colorOnSecondary">@android:color/system_accent2_900</item>
+        <item name="android:statusBarColor">@null</item>
     </style>
     <style name="Theme.SoundRecorder.NoActionBar">
         <item name="windowActionBar">false</item>
