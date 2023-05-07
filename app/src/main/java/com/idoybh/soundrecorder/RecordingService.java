@@ -87,6 +87,14 @@ public class RecordingService extends Service {
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
         mRecorder.setAudioSamplingRate(mOptions.getRate());
         mRecorder.setAudioChannels(mOptions.getChannels());
+        final int[] limit = mOptions.getLimit();
+        if (limit != null) {
+            if (limit[0] == RecordFragment.LIMIT_MODE_TIME) {
+                mRecorder.setMaxDuration(limit[1] * 1000 /* s to ms */);
+            } else if (limit[0] == RecordFragment.LIMIT_MODE_SIZE) {
+                mRecorder.setMaxFileSize(limit[1] * 1000000L /* MB to bytes */);
+            }
+        }
         mRecorder.setOutputFile(mOptions.getFile());
         final Location location = mOptions.getLocation();
         if (location != null) mRecorder.setLocation(
@@ -188,6 +196,7 @@ public class RecordingService extends Service {
         private final AudioDeviceInfo mSource;
         private final int mRate;
         private final int mChannels;
+        private final int[] mLimit;
         private final Location mLocation;
 
         /**
@@ -196,13 +205,17 @@ public class RecordingService extends Service {
          * @param source the audio device to record via
          * @param rate the rate in bits used for recording
          * @param channels the number of channels to record with
+         * @param limit array of { limit mode, limit } where limit is either in seconds or MB
+         *              null disables
          * @param location location to save to the metadata. pass null to disable
          */
-        public RecordOptions(File file, AudioDeviceInfo source, int rate, int channels, Location location) {
+        public RecordOptions(File file, AudioDeviceInfo source, int rate, int channels,
+                             int[] limit, Location location) {
             mFile = file;
             mSource = source;
             mRate = rate;
             mChannels = channels;
+            mLimit = limit;
             mLocation = location;
         }
 
@@ -220,6 +233,10 @@ public class RecordingService extends Service {
 
         public int getChannels() {
             return mChannels;
+        }
+
+        public int[] getLimit() {
+            return mLimit;
         }
 
         public Location getLocation() {

@@ -18,6 +18,7 @@ import android.media.CamcorderProfile;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Editable;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +40,8 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.slider.LabelFormatter;
+import com.google.android.material.slider.Slider;
 import com.idoybh.soundrecorder.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
 
@@ -55,7 +58,12 @@ public class RecordFragment extends Fragment {
     private static final String PREF_OUTPUT_EXT = "output_ext";
     private static final String PREF_OUTPUT_QUALITY = "output_quality";
     private static final String PREF_CHANNELS = "output_channels";
+    private static final String PREF_LIMIT_MODE = "limit_mode";
+    private static final String PREF_LIMIT_VALUE = "limit_value";
     private static final String PREF_SAVE_LOCATION = "save_location";
+
+    public static final int LIMIT_MODE_SIZE = 0;
+    public static final int LIMIT_MODE_TIME = 1;
 
     private FragmentRecordBinding binding;
     private SharedPreferences mSharedPrefs;
@@ -63,6 +71,7 @@ public class RecordFragment extends Fragment {
     private Location mLocation;
     private List<AudioDeviceInfo> mAudioDevices = new ArrayList<>();
     private int mSelectedDeviceIndex = 0;
+    private int mLimitMode = LIMIT_MODE_SIZE;
     private List<View> mOptionViews = new ArrayList<>();
     private String mDefaultName;
     private RecordingService mService;
@@ -123,6 +132,13 @@ public class RecordFragment extends Fragment {
             }
         });
 
+        binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            setLimitMode(checkedId == binding.limitBtnTime.getId() && isChecked
+                    ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
+        });
+        setLimitMode(binding.limitToggle.getCheckedButtonId() == binding.limitBtnTime.getId()
+                ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
+
         Calendar now = Calendar.getInstance();
         mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d",
                 now.get(Calendar.YEAR),
@@ -146,6 +162,11 @@ public class RecordFragment extends Fragment {
         final int channelsPref = getPrefs().getInt(PREF_CHANNELS, 2);
         binding.channelToggle.check(channelsPref == 2
                 ? binding.channelBtn2.getId() : binding.channelBtn1.getId());
+        final int limitModePref = getPrefs().getInt(PREF_LIMIT_MODE, LIMIT_MODE_SIZE);
+        binding.limitToggle.check(limitModePref == LIMIT_MODE_TIME
+                ? binding.limitBtnTime.getId() : binding.limitBtnSize.getId());
+        final int limitValPref = getPrefs().getInt(PREF_LIMIT_VALUE, 0);
+        binding.limitSlider.setValue(limitValPref);
         final boolean saveLocationPref = getPrefs().getBoolean(PREF_SAVE_LOCATION, false);
         binding.locationToggle.check(saveLocationPref
                 ? binding.locationOnButton.getId() : binding.locationOffButton.getId());
@@ -157,6 +178,8 @@ public class RecordFragment extends Fragment {
                 binding.locationToggle,
                 binding.outputToggle,
                 binding.qualityToggle,
+                binding.limitToggle,
+                binding.limitSlider,
                 binding.channelToggle
         );
     }
@@ -195,6 +218,8 @@ public class RecordFragment extends Fragment {
             }
             editor.putInt(PREF_CHANNELS,
                     binding.channelToggle.getCheckedButtonId() == R.id.channelBtn1 ? 1 : 2);
+            editor.putInt(PREF_LIMIT_MODE, mLimitMode);
+            editor.putInt(PREF_LIMIT_VALUE, (int) binding.limitSlider.getValue());
             editor.putBoolean(PREF_SAVE_LOCATION,
                     binding.locationToggle.getCheckedButtonId() == R.id.locationOnButton);
             editor.apply();
@@ -208,6 +233,25 @@ public class RecordFragment extends Fragment {
         requireContext().unbindService(connection);
         requireContext().stopService(intent);
         isStarted = false;
+    }
+
+    private void setLimitMode(final int mode) {
+        mLimitMode = mode;
+        final float upperLimit = mode == LIMIT_MODE_TIME ? 300f : 1000f;
+        final float stepSize = mode == LIMIT_MODE_TIME ? 5f : 10f;
+        binding.limitSlider.setLabelFormatter(value -> {
+            if (value < 1) return getString(R.string.unlimited_txt);
+            int val = (int) value;
+            if (mLimitMode == LIMIT_MODE_TIME) {
+                if (value < 60)
+                    return String.format(Locale.getDefault(), "%d%s", val, getString(R.string.unit_seconds));
+                return String.format(Locale.getDefault(), "%02d:%02d", val / 60, val % 60);
+            }
+            return String.format(Locale.getDefault(), "%d%s", val, getString(R.string.unit_mb));
+        });
+        binding.limitSlider.setStepSize(stepSize);
+        binding.limitSlider.setValueTo(upperLimit);
+        binding.limitSlider.setValue(0); // refresh the label, ensure in bounds
     }
 
     private void onLocationClicked(MaterialButtonToggleGroup group, int checkedId, boolean isChecked) {
@@ -242,6 +286,13 @@ public class RecordFragment extends Fragment {
                 rate = rates[0];
             final int channels = binding.channelToggle.getCheckedButtonId() ==
                     R.id.channelBtn1 ? 1 : 2;
+            int[] limit = null;
+            final int limitValue = (int) binding.limitSlider.getValue();
+            if (limitValue > 0) {
+                limit = new int[2];
+                limit[0] = mLimitMode;
+                limit[1] = limitValue;
+            }
             final String ext = binding.outputToggle.getCheckedButtonId() == R.id.outputBtn3GP
                     ? RecordingService.THREE_GPP_EXT : RecordingService.MPEG_4_EXT;
             final Editable editText = binding.recordingNameInputText.getText();
@@ -249,7 +300,7 @@ public class RecordFragment extends Fragment {
                     ? mDefaultName : editText.toString().toString()) + "." + ext;
             final File file = new File(requireContext().getFilesDir(), fileName);
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
-                    file, info, rate, channels, mLocation);
+                    file, info, rate, channels, limit, mLocation);
             mService.setOptions(opts);
             mService.addListener(mStatusListener);
             mService.startRecording();

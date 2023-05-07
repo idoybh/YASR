@@ -27,5 +27,9 @@
     <string name="mono">1</string>
     <string name="quality_txt">Quality:</string>
     <string name="output_txt">Format:</string>
-    <string name="chennels_txt">Chennels:</string>
+    <string name="channels_txt">Channels:</string>
+    <string name="limit_txt">Limit by:</string>
+    <string name="unlimited_txt">Unlimited</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_seconds">s</string>
 </resources>
