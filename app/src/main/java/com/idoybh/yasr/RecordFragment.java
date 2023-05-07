@@ -1,4 +1,4 @@
-package com.idoybh.soundrecorder;
+package com.idoybh.yasr;
 
 import android.Manifest;
 import android.content.ComponentName;
@@ -7,28 +7,17 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.DataSetObserver;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraManager;
 import android.location.Location;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
-import android.media.AudioProfile;
-import android.media.CamcorderProfile;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Editable;
-import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Filter;
-import android.widget.Filterable;
-import android.widget.ImageButton;
-import android.widget.ListAdapter;
-import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -40,16 +29,13 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.material.button.MaterialButtonToggleGroup;
-import com.google.android.material.slider.LabelFormatter;
-import com.google.android.material.slider.Slider;
-import com.idoybh.soundrecorder.databinding.FragmentRecordBinding;
+import com.idoybh.yasr.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 

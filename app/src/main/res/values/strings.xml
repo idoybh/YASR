@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SoundRecorder</string>
+    <string name="app_name">YASR</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">SoundRecorder</string>

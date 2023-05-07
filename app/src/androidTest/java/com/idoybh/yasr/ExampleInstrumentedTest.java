@@ -1,4 +1,4 @@
-package com.idoybh.soundrecorder;
+package com.idoybh.yasr;
 
 import android.content.Context;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -20,6 +20,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.idoybh.soundrecorder", appContext.getPackageName());
+        assertEquals("com.idoybh.yasr", appContext.getPackageName());
     }
 }

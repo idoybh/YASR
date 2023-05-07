@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.idoybh.soundrecorder'
+    namespace 'com.idoybh.yasr'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.idoybh.soundrecorder"
+        applicationId "com.idoybh.yasr"
         minSdk 33
         targetSdk 33
         versionCode 1
@@ -36,7 +36,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:21.0.1'
     implementation "androidx.compose.material3:material3:1.0.1"
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
+    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment:2.5.3'
     implementation 'androidx.navigation:navigation-ui:2.5.3'

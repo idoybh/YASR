@@ -1,4 +1,4 @@
-package com.idoybh.soundrecorder;
+package com.idoybh.yasr;
 
 import android.Manifest;
 import android.content.Context;
@@ -21,7 +21,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.idoybh.soundrecorder.databinding.ActivityMainBinding;
+import com.idoybh.yasr.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;

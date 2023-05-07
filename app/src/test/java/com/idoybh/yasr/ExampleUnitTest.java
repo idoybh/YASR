@@ -1,4 +1,4 @@
-package com.idoybh.soundrecorder;
+package com.idoybh.yasr;
 
 import org.junit.Test;
 
