@@ -15,6 +15,7 @@ import android.os.IBinder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -31,6 +32,8 @@ public class RecordingService extends Service {
     private MediaRecorder mRecorder;
     private int mStatus = Status.IDLE;
     private int mStatusExtra = 0;
+    private Calendar mStartTime;
+    private long mDuration = 0;
 
     private final List<StatusListener> mListeners = new ArrayList<>();
 
@@ -93,7 +96,7 @@ public class RecordingService extends Service {
             if (limit[0] == RecordFragment.LIMIT_MODE_TIME) {
                 mRecorder.setMaxDuration(limit[1] * 1000 /* s to ms */);
             } else if (limit[0] == RecordFragment.LIMIT_MODE_SIZE) {
-                mRecorder.setMaxFileSize(limit[1] * 1000000L /* MB to bytes */);
+                mRecorder.setMaxFileSize(limit[1] * 1000L /* kB to bytes */);
             }
         }
         mRecorder.setOutputFile(mOptions.getFile());
@@ -117,6 +120,8 @@ public class RecordingService extends Service {
             e.printStackTrace();
             updateListeners(Status.FAILED, -1);
         }
+        mStartTime = Calendar.getInstance();
+        mDuration = 0;
         updateListeners(Status.STARTED);
     }
 
@@ -132,12 +137,24 @@ public class RecordingService extends Service {
     public synchronized void pauseResumeRecording() {
         if (mRecorder == null) return;
         if (mStatus == Status.PAUSED) {
+            mStartTime = Calendar.getInstance();
             mRecorder.resume();
             updateListeners(Status.STARTED);
         } else if (mStatus == Status.STARTED) {
+            mDuration += Calendar.getInstance().getTimeInMillis() - mStartTime.getTimeInMillis();
+            mStartTime = null;
             mRecorder.pause();
             updateListeners(Status.PAUSED);
         }
+    }
+
+    /**
+     * Get the total duration of the current recording
+     * @return the total duration in milliseconds
+     */
+    public synchronized long getDuration() {
+        if (mStartTime == null) return mDuration; // when paused
+        return mDuration + Calendar.getInstance().getTimeInMillis() - mStartTime.getTimeInMillis();
     }
 
     public synchronized int getStatus() {

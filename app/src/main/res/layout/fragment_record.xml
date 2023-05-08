@@ -349,7 +349,9 @@
         android:layout_height="36dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
+        android:fontFamily="serif-monospace"
         android:gravity="center"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/recordButton"
         app:layout_constraintEnd_toEndOf="parent" />
 

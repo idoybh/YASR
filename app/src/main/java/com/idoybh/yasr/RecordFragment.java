@@ -22,7 +22,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -71,7 +70,9 @@ public class RecordFragment extends Fragment {
     private int mEncodeRate;
     private int mLimitMode = LIMIT_MODE_SIZE;
     private List<View> mOptionViews = new ArrayList<>();
+    private File mCurrentRecordingFile;
     private String mDefaultName;
+    private String mTotalDurationStr;
     private RecordingService mService;
     private boolean isStarted = false;
 
@@ -85,7 +86,6 @@ public class RecordFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), backCallback);
 
         // polling & filtering input audio devices
         AudioManager am = (AudioManager) requireContext().getSystemService(Context.AUDIO_SERVICE);
@@ -195,18 +195,12 @@ public class RecordFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
         mNoiseTimer.cancel();
+        mNoiseTimer.purge();
+        super.onDestroyView();
         mRecorder = null;
         binding = null;
     }
-
-    OnBackPressedCallback backCallback = new OnBackPressedCallback(false) {
-        @Override
-        public void handleOnBackPressed() {
-            // do nothing
-        }
-    };
 
     private void onRecordingClicked(View view) {
         if (!isStarted) {
@@ -244,22 +238,42 @@ public class RecordFragment extends Fragment {
         Intent intent = new Intent(requireContext(), RecordingService.class);
         requireContext().unbindService(connection);
         requireContext().stopService(intent);
+        registerToDuration(false);
         isStarted = false;
+        binding.timeText.setText("");
+        binding.progressBar.setVisibility(View.INVISIBLE);
     }
 
     private void setLimitMode(final int mode) {
         mLimitMode = mode;
-        final float upperLimit = mode == LIMIT_MODE_TIME ? 300f : 1000f;
-        final float stepSize = mode == LIMIT_MODE_TIME ? 5f : 10f;
+        final float upperLimit = mode == LIMIT_MODE_TIME ? 300f : 20000f;
+        final float stepSize = mode == LIMIT_MODE_TIME ? 5f : 100f;
         binding.limitSlider.setLabelFormatter(value -> {
-            if (value < 1) return getString(R.string.unlimited_txt);
-            int val = (int) value;
-            if (mLimitMode == LIMIT_MODE_TIME) {
-                if (value < 60)
-                    return String.format(Locale.getDefault(), "%d%s", val, getString(R.string.unit_seconds));
-                return String.format(Locale.getDefault(), "%02d:%02d", val / 60, val % 60);
+            if (value < 1) {
+                mTotalDurationStr = null;
+                binding.progressBar.setIndeterminate(true);
+                return getString(R.string.unlimited_txt);
             }
-            return String.format(Locale.getDefault(), "%d%s", val, getString(R.string.unit_mb));
+            int val = (int) value;
+            binding.progressBar.setIndeterminate(false);
+            binding.progressBar.setMax(val);
+            if (mLimitMode == LIMIT_MODE_TIME) {
+                if (value < 60) {
+                    mTotalDurationStr = String.format(Locale.getDefault(),
+                            "%d%s", val, getString(R.string.unit_seconds));
+                    return mTotalDurationStr;
+                }
+                mTotalDurationStr = String.format(Locale.getDefault(),
+                        "%02d:%02d", val / 60, val % 60);
+                return mTotalDurationStr;
+            }
+            mTotalDurationStr = null;
+            if (value >= 1000) {
+                return String.format(Locale.getDefault(),
+                        "%d.%d%s", val / 1000, (val % 1000) / 100, getString(R.string.unit_mb));
+            }
+            return String.format(Locale.getDefault(),
+                    "%d%s", val, getString(R.string.unit_kb));
         });
         binding.limitSlider.setStepSize(stepSize);
         binding.limitSlider.setValueTo(upperLimit);
@@ -304,9 +318,9 @@ public class RecordFragment extends Fragment {
             final Editable editText = binding.recordingNameInputText.getText();
             final String fileName = (editText == null || editText.toString().isEmpty()
                     ? mDefaultName : editText.toString()) + "." + ext;
-            final File file = new File(requireContext().getFilesDir(), fileName);
+            mCurrentRecordingFile = new File(requireContext().getFilesDir(), fileName);
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
-                    file, info, mSampleRate, mEncodeRate, channels, limit, mLocation);
+                    mCurrentRecordingFile, info, mSampleRate, mEncodeRate, channels, limit, mLocation);
             mService.setOptions(opts);
             mService.addListener(mStatusListener);
             mService.startRecording();
@@ -326,30 +340,28 @@ public class RecordFragment extends Fragment {
         public void onStatusChanged(int status, int extra) {
             switch (status) {
                 case RecordingService.Status.FAILED:
+                case RecordingService.Status.MAX_REACHED:
                 case RecordingService.Status.IDLE:
-                    backCallback.setEnabled(false);
                     binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
+                    binding.progressBar.setVisibility(View.INVISIBLE);
+                    binding.timeText.setText("");
                     showSaveButton(false);
                     enableOptionViews(true);
+                    registerToDuration(false);
                     break;
                 case RecordingService.Status.STARTED:
-                    backCallback.setEnabled(true);
                     binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
+                    binding.progressBar.setVisibility(View.VISIBLE);
                     showSaveButton(true);
                     enableOptionViews(false);
+                    registerToDuration(true);
                     break;
                 case RecordingService.Status.PAUSED:
-                    backCallback.setEnabled(false);
                     binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
+                    binding.progressBar.setVisibility(View.INVISIBLE);
                     showSaveButton(true);
                     enableOptionViews(false);
-                    break;
-                case RecordingService.Status.MAX_REACHED:
-                    // TODO: Handle max here - file should be saved and all
-                    backCallback.setEnabled(false);
-                    binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
-                    showSaveButton(false);
-                    enableOptionViews(true);
+                    registerToDuration(false);
                     break;
             }
         }
@@ -411,15 +423,18 @@ public class RecordFragment extends Fragment {
         @Override
         public void run() {
             if (mRecorder == null) {
-                mNoiseTimer.cancel();
                 return;
             }
-            int noise = mRecorder.getMaxAmplitude();
+            final int noise = mRecorder.getMaxAmplitude();
             if (noise > mMaxNoiseDetected) {
                 mMaxNoiseDetected = noise;
-                binding.audioBar.setMax(noise);
+                binding.audioBar.getHandler().post(() -> {
+                    if (binding != null) binding.audioBar.setMax(noise);
+                });
             }
-            binding.audioBar.setProgress(noise, true);
+            binding.audioBar.getHandler().post(() -> {
+                if (binding != null) binding.audioBar.setProgress(noise, true);
+            });
         }
     };
 
@@ -451,6 +466,55 @@ public class RecordFragment extends Fragment {
         binding.audioBar.setMax(1000);
         mMaxNoiseDetected = 1000;
         mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
+    }
+
+    private Timer mDurationTimer;
+    private TimerTask mDurationTimerTask;
+    private class DurationTimerTask extends TimerTask {
+        @Override
+        public void run() {
+            if (!isStarted || mService == null) {
+                return;
+            }
+            final long sec = mService.getDuration() / 1000;
+            String text = "";
+            if (sec > 3600 /* 1 hour */) {
+                text += String.format(Locale.ENGLISH, "%02d:%02d", sec / 3600, sec % 3600);
+            } else {
+                text += String.format(Locale.ENGLISH, "%02d", sec / 60);
+            }
+            text += String.format(Locale.ENGLISH, ":%02d", sec % 60);
+            if (mTotalDurationStr != null) {
+                String totalStr = mTotalDurationStr;
+                if (totalStr.contains("s"))
+                    totalStr = "00:" + totalStr.replace("s", "");
+                text += "/" + totalStr;
+                binding.progressBar.getHandler().post(() ->
+                        binding.progressBar.setProgress((int) sec, true));
+            } else if (mLimitMode == LIMIT_MODE_SIZE) {
+                int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
+                binding.progressBar.getHandler().post(() ->
+                        binding.progressBar.setProgress(size, true));
+            }
+            final String res = text;
+            binding.timeText.getHandler().post(() ->
+                    binding.timeText.setText(res));
+        }
+    };
+
+    private void registerToDuration(final boolean register) {
+        if (register && mDurationTimer == null && mDurationTimerTask == null) {
+            mDurationTimer = new Timer();
+            mDurationTimerTask = new DurationTimerTask();
+            mDurationTimer.scheduleAtFixedRate(mDurationTimerTask, 0, 250);
+            return;
+        }
+        if (mDurationTimer == null || mDurationTimerTask == null)
+            return;
+        mDurationTimer.cancel();
+        mDurationTimer = null;
+        mDurationTimerTask.cancel();
+        mDurationTimerTask = null;
     }
 
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
