@@ -12,6 +12,7 @@ import android.location.Location;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.Editable;
@@ -35,11 +36,14 @@ import com.idoybh.yasr.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class RecordFragment extends Fragment {
     private static final String SHARED_PREF_FILE = "SoundRecorder";
@@ -55,11 +59,13 @@ public class RecordFragment extends Fragment {
     public static final int LIMIT_MODE_TIME = 1;
 
     private FragmentRecordBinding binding;
+    private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
     private FusedLocationProviderClient mLocationClient;
     private Location mLocation;
     @SuppressWarnings("FieldMayBeFinal")
     private List<AudioDeviceInfo> mAudioDevices = new ArrayList<>();
+    private int mMaxNoiseDetected = 50;
     private int mSelectedDeviceIndex = 0;
     private int mSampleRate;
     private int mEncodeRate;
@@ -122,6 +128,7 @@ public class RecordFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 mSelectedDeviceIndex = position;
                 updateInfoText();
+                registerToMicAmp();
             }
 
             @Override
@@ -183,11 +190,14 @@ public class RecordFragment extends Fragment {
         );
 
         updateInfoText();
+        registerToMicAmp();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        mNoiseTimer.cancel();
+        mRecorder = null;
         binding = null;
     }
 
@@ -394,6 +404,53 @@ public class RecordFragment extends Fragment {
             mEncodeRate = eRates.get(0);
         }
         binding.infoTxt.setText(String.format(getString(R.string.info_txt), mSampleRate / 1000f, mEncodeRate));
+    }
+
+    private final Timer mNoiseTimer = new Timer();
+    private final TimerTask mNoiseTimerTask = new TimerTask() {
+        @Override
+        public void run() {
+            if (mRecorder == null) {
+                mNoiseTimer.cancel();
+                return;
+            }
+            int noise = mRecorder.getMaxAmplitude();
+            if (noise > mMaxNoiseDetected) {
+                mMaxNoiseDetected = noise;
+                binding.audioBar.setMax(noise);
+            }
+            binding.audioBar.setProgress(noise, true);
+        }
+    };
+
+    private synchronized void registerToMicAmp() {
+        if (mRecorder != null) {
+            mRecorder.stop();
+            mRecorder.release();
+            mRecorder = null;
+            mNoiseTimer.cancel();
+            final File tmpFile = new File(requireContext().getCacheDir()
+                    + File.separator + "tmp.3gp");
+            if (tmpFile.exists()) tmpFile.delete();
+        }
+        final AudioDeviceInfo info = mAudioDevices.get(mSelectedDeviceIndex);
+        mRecorder = new MediaRecorder(requireContext());
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mRecorder.setPreferredDevice(info);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        try {
+            mRecorder.setOutputFile(File.createTempFile("tmp", ".3gp",
+                    requireContext().getCacheDir()));
+            mRecorder.prepare();
+            mRecorder.start();
+        } catch (IllegalStateException | IOException e) {
+            e.printStackTrace();
+        }
+        binding.audioBar.setMin(mRecorder.getMaxAmplitude() /* 0 */);
+        binding.audioBar.setMax(1000);
+        mMaxNoiseDetected = 1000;
+        mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
     }
 
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
