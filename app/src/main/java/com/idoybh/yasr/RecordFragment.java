@@ -41,6 +41,7 @@ import java.util.Locale;
 
 public class RecordFragment extends Fragment {
     private static final String SHARED_PREF_FILE = "SoundRecorder";
+    private static final String PREF_INPUT_DEVICE = "input_device";
     private static final String PREF_OUTPUT_EXT = "output_ext";
     private static final String PREF_OUTPUT_QUALITY = "output_quality";
     private static final String PREF_CHANNELS = "output_channels";
@@ -89,18 +90,25 @@ public class RecordFragment extends Fragment {
             if (found) continue;
             mAudioDevices.add(device);
         }
+        final String inputPref = getPrefs().getString(PREF_INPUT_DEVICE, null);
+        int c = 0;
         ArrayList<String> deviceNames = new ArrayList<>();
-        for (AudioDeviceInfo device : mAudioDevices)
-            deviceNames.add(device.getProductName().toString());
+        for (AudioDeviceInfo device : mAudioDevices) {
+            final String deviceName = device.getProductName().toString();
+            if (deviceName.isEmpty()) continue;
+            deviceNames.add(deviceName);
+            if (deviceName.equals(inputPref))
+                mSelectedDeviceIndex = c;
+            c++;
+        }
         String[] names = new String[deviceNames.size()];
         names = deviceNames.toArray(names);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_dropdown_item_1line, names);
         binding.deviceMenu.setAdapter(adapter);
         if (names.length > 0) {
-            binding.deviceMenu.setListSelection(0);
-            binding.deviceMenu.setText(names[0], false);
-            updateInputCapabilities(0);
+            binding.deviceMenu.setListSelection(mSelectedDeviceIndex);
+            binding.deviceMenu.setText(names[mSelectedDeviceIndex], false);
         }
 
         // settings up the rest of the views + listeners
@@ -118,10 +126,9 @@ public class RecordFragment extends Fragment {
             }
         });
 
-        binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            setLimitMode(checkedId == binding.limitBtnTime.getId() && isChecked
-                    ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
-        });
+        binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) ->
+                setLimitMode(checkedId == binding.limitBtnTime.getId() && isChecked
+                        ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE));
         setLimitMode(binding.limitToggle.getCheckedButtonId() == binding.limitBtnTime.getId()
                 ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
 
@@ -191,6 +198,7 @@ public class RecordFragment extends Fragment {
 
             // save current settings as prefs for the next time we run
             SharedPreferences.Editor editor = getPrefs().edit();
+            editor.putString(PREF_INPUT_DEVICE, binding.deviceMenu.getText().toString());
             if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnMP4)
                 editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
             else if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtn3GP)
