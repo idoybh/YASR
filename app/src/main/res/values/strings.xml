@@ -32,4 +32,5 @@
     <string name="unlimited_txt">Unlimited</string>
     <string name="unit_mb">MB</string>
     <string name="unit_seconds">s</string>
+    <string name="info_txt" formatted="false">Sampling rate: %.1f kHz Encoding rate: %d bit/s</string>
 </resources>

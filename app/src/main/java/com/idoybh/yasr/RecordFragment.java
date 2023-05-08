@@ -1,6 +1,7 @@
 package com.idoybh.yasr;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -9,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.media.AudioDeviceInfo;
+import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -56,8 +58,11 @@ public class RecordFragment extends Fragment {
     private SharedPreferences mSharedPrefs;
     private FusedLocationProviderClient mLocationClient;
     private Location mLocation;
+    @SuppressWarnings("FieldMayBeFinal")
     private List<AudioDeviceInfo> mAudioDevices = new ArrayList<>();
     private int mSelectedDeviceIndex = 0;
+    private int mSampleRate;
+    private int mEncodeRate;
     private int mLimitMode = LIMIT_MODE_SIZE;
     private List<View> mOptionViews = new ArrayList<>();
     private String mDefaultName;
@@ -116,7 +121,7 @@ public class RecordFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 mSelectedDeviceIndex = position;
-                updateInputCapabilities(position);
+                updateInfoText();
             }
 
             @Override
@@ -143,6 +148,7 @@ public class RecordFragment extends Fragment {
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
         binding.locationToggle.addOnButtonCheckedListener(this::onLocationClicked);
+        binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
 
         // loading shared prefs / defaults
         final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
@@ -175,6 +181,8 @@ public class RecordFragment extends Fragment {
                 binding.limitSlider,
                 binding.channelToggle
         );
+
+        updateInfoText();
     }
 
     @Override
@@ -271,13 +279,7 @@ public class RecordFragment extends Fragment {
             mService = binder.getService();
             isStarted = true;
             final AudioDeviceInfo info = mAudioDevices.get(mSelectedDeviceIndex);
-            final int[] rates = info.getSampleRates();
-            Arrays.sort(rates);
-            int rate = rates[rates.length - 1];
-            if (binding.qualityToggle.getCheckedButtonId() ==  R.id.qualityBtnStandard)
-                rate = rates[rates.length / 2];
-            else if (binding.qualityToggle.getCheckedButtonId() == R.id.qualityBtnLow)
-                rate = rates[0];
+            updateInfoText(info);
             final int channels = binding.channelToggle.getCheckedButtonId() ==
                     R.id.channelBtn1 ? 1 : 2;
             int[] limit = null;
@@ -291,10 +293,10 @@ public class RecordFragment extends Fragment {
                     ? RecordingService.THREE_GPP_EXT : RecordingService.MPEG_4_EXT;
             final Editable editText = binding.recordingNameInputText.getText();
             final String fileName = (editText == null || editText.toString().isEmpty()
-                    ? mDefaultName : editText.toString().toString()) + "." + ext;
+                    ? mDefaultName : editText.toString()) + "." + ext;
             final File file = new File(requireContext().getFilesDir(), fileName);
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
-                    file, info, rate, channels, limit, mLocation);
+                    file, info, mSampleRate, mEncodeRate, channels, limit, mLocation);
             mService.setOptions(opts);
             mService.addListener(mStatusListener);
             mService.startRecording();
@@ -352,11 +354,46 @@ public class RecordFragment extends Fragment {
         for (View v : mOptionViews) v.setEnabled(enable);
     }
 
-    private void updateInputCapabilities(final int index) {
-        final AudioDeviceInfo info = mAudioDevices.get(index);
-        final int[] rates = info.getSampleRates();
-        Arrays.sort(rates);
-        // TODO: Update ch vis
+    private void updateInfoText() {
+        updateInfoText(mAudioDevices.get(mSelectedDeviceIndex));
+    }
+
+    private void updateInfoText(final AudioDeviceInfo info) {
+        final int[] encodings = info.getEncodings();
+        final List<Integer> eRates = new ArrayList<>();
+        if (encodings.length == 0) {
+            // supports everything
+            eRates.add(0, 8);
+            eRates.add(32);
+        } else {
+            int max = 16; // always supported
+            for (Integer encoder : encodings) {
+                if (encoder == AudioFormat.ENCODING_PCM_8BIT) {
+                    eRates.add(0, 8);
+                } else if (encoder == AudioFormat.ENCODING_PCM_24BIT_PACKED ||
+                        encoder == AudioFormat.ENCODING_PCM_FLOAT) {
+                    max = 24;
+                } else if (encoder == AudioFormat.ENCODING_PCM_32BIT) {
+                    max = 32;
+                    break;
+                }
+            }
+            eRates.add(max);
+        }
+        final int[] sRates = info.getSampleRates();
+        Arrays.sort(sRates);
+        mSampleRate = sRates[sRates.length - 1];
+        mEncodeRate = eRates.get(eRates.size() - 1);
+        if (binding.qualityToggle.getCheckedButtonId() ==  R.id.qualityBtnStandard) {
+            mSampleRate = sRates[sRates.length / 2];
+            if (mSampleRate < 44100f && sRates[sRates.length - 1] > 44100f)
+                mSampleRate = 44100; // capture whole spectrum in SD
+            mEncodeRate = 16; // always supported, always standard
+        } else if (binding.qualityToggle.getCheckedButtonId() == R.id.qualityBtnLow) {
+            mSampleRate = sRates[0];
+            mEncodeRate = eRates.get(0);
+        }
+        binding.infoTxt.setText(String.format(getString(R.string.info_txt), mSampleRate / 1000f, mEncodeRate));
     }
 
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
@@ -379,6 +416,7 @@ public class RecordFragment extends Fragment {
         return false;
     }
 
+    @SuppressLint("MissingPermission")
     private void addLocation() {
         binding.locationText.setText(getString(R.string.locating));
         if (mLocationClient == null)

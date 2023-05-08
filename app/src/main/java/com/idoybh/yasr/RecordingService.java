@@ -85,7 +85,8 @@ public class RecordingService extends Service {
                 ? MediaRecorder.OutputFormat.THREE_GPP
                 : MediaRecorder.OutputFormat.MPEG_4);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-        mRecorder.setAudioSamplingRate(mOptions.getRate());
+        mRecorder.setAudioSamplingRate(mOptions.getSamplingRate());
+        mRecorder.setAudioEncodingBitRate(mOptions.getEncodingRate());
         mRecorder.setAudioChannels(mOptions.getChannels());
         final int[] limit = mOptions.getLimit();
         if (limit != null) {
@@ -194,7 +195,8 @@ public class RecordingService extends Service {
     public static class RecordOptions {
         private final File mFile;
         private final AudioDeviceInfo mSource;
-        private final int mRate;
+        private final int mSamplingRate;
+        private final int mEncodingRate;
         private final int mChannels;
         private final int[] mLimit;
         private final Location mLocation;
@@ -203,17 +205,19 @@ public class RecordingService extends Service {
          * Recording options collection
          * @param file the recording file to save to
          * @param source the audio device to record via
-         * @param rate the rate in bits used for recording
+         * @param samplingRate the sampling rate per second
+         * @param encodingRate the encoding rate in bits per second
          * @param channels the number of channels to record with
          * @param limit array of { limit mode, limit } where limit is either in seconds or MB
          *              null disables
          * @param location location to save to the metadata. pass null to disable
          */
-        public RecordOptions(File file, AudioDeviceInfo source, int rate, int channels,
-                             int[] limit, Location location) {
+        public RecordOptions(File file, AudioDeviceInfo source, int samplingRate, int encodingRate,
+                             int channels, int[] limit, Location location) {
             mFile = file;
             mSource = source;
-            mRate = rate;
+            mSamplingRate = samplingRate;
+            mEncodingRate = encodingRate;
             mChannels = channels;
             mLimit = limit;
             mLocation = location;
@@ -227,9 +231,10 @@ public class RecordingService extends Service {
             return mSource;
         }
 
-        public int getRate() {
-            return mRate;
+        public int getSamplingRate() {
+            return mSamplingRate;
         }
+        public int getEncodingRate() { return mEncodingRate; }
 
         public int getChannels() {
             return mChannels;
