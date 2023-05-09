@@ -7,6 +7,7 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.idoybh.yasr.databinding.FragmentFirstBinding;
@@ -46,6 +48,8 @@ public class FirstFragment extends Fragment {
 
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
+    private List<FloatingActionButton> mMultiSelectFabs;
+    private volatile boolean mWaitingForResults = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -56,6 +60,13 @@ public class FirstFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        mMultiSelectFabs = new ArrayList<>(List.of(
+                binding.fabSelection,
+                binding.fabSave,
+                binding.fabShare,
+                binding.fabDelete
+        ));
 
         List<File> recordings = new ArrayList<>();
         File fileDir = requireContext().getFilesDir();
@@ -75,11 +86,62 @@ public class FirstFragment extends Fragment {
         binding.recycler.setLayoutManager(manager);
         mAdapter = new RecyclerAdapter(recordings);
         mAdapter.setOnCheckedListener((selectedFiles) -> {
-            if (selectedFiles.isEmpty()) return;
-            // TODO: enable multiple delete action
+            final boolean selectionEmpty = selectedFiles.isEmpty();
+            for (FloatingActionButton fab : mMultiSelectFabs)
+                fab.setVisibility(selectionEmpty ? View.INVISIBLE : View.VISIBLE);
+            binding.fabSelection.setImageResource(mAdapter.isFullySelected()
+                    ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
         });
         binding.recycler.setAdapter(mAdapter);
 
+        binding.fabSelection.setOnClickListener(v -> {
+            if (mAdapter.isFullySelected()) {
+                mAdapter.clearSelection();
+                return;
+            }
+            mAdapter.selectAll();
+        });
+        binding.fabSave.setOnClickListener(v -> new Thread(() -> {
+            for (File file : mAdapter.getSelectedRecordings()) {
+                final String name = file.getName();
+                final String ext = name.substring(name.lastIndexOf(".") + 1);
+                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                mAdapter.setSavingRecording(file);
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType(mime);
+                intent.putExtra(Intent.EXTRA_TITLE, name);
+                mWaitingForResults = true;
+                startActivityForResult(intent, CREATE_FILE_CODE);
+                while (mWaitingForResults) Thread.onSpinWait();
+            }
+        }).start());
+        binding.fabShare.setOnClickListener(v -> {
+            ArrayList<Uri> uris = new ArrayList<>();
+            for (File file : mAdapter.getSelectedRecordings()) {
+                Uri fileUri = null;
+                try {
+                    fileUri = FileProvider.getUriForFile(requireActivity(),
+                            "com.idoybh.yasr.fileprovider", file);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                }
+                if (fileUri == null) continue;
+                uris.add(fileUri);
+            }
+            final String name = mAdapter.getSelectedRecordings().get(0).getName();
+            final String ext = name.substring(name.lastIndexOf(".") + 1);
+            final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+            Intent shareIntent = new Intent();
+            shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
+            shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+            shareIntent.setType(mime);
+            startActivity(Intent.createChooser(shareIntent, null));
+        });
+        binding.fabDelete.setOnClickListener(v -> displayAreYouSureDialog((dialog, which) -> {
+            for (File file : mAdapter.getSelectedRecordings())
+                    mAdapter.removeRecording(file);
+        }, mAdapter.getSelectedRecordings().size()));
         binding.fab.setOnClickListener(v ->
                 NavHostFragment.findNavController(FirstFragment.this)
                 .navigate(R.id.action_FirstFragment_to_RecordFragment));
@@ -93,6 +155,7 @@ public class FirstFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        mWaitingForResults = false;
         if (requestCode != CREATE_FILE_CODE || resultCode != Activity.RESULT_OK)
             return;
         Uri uri = null;
@@ -111,13 +174,10 @@ public class FirstFragment extends Fragment {
                     out.write(buf, 0, len);
             } catch (IOException e) {
                 e.printStackTrace();
-                return;
             }
         } catch (IOException e) {
             e.printStackTrace();
-            return;
         }
-        mAdapter.clearSavingFile();
     }
 
     private class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHolder> {
@@ -221,7 +281,9 @@ public class FirstFragment extends Fragment {
             holder.fileNameTxt.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) return;
                 final String oldName = name.substring(0, name.lastIndexOf("."));
-                final String newName = ((TextInputEditText) v).getText().toString();
+                final Editable editable = ((TextInputEditText) v).getText();
+                if (editable == null) return;
+                final String newName = editable.toString();
                 if (oldName.equals(newName)) return;
                 final File newFile = new File(file.getPath().replace(oldName, newName));
                 if (newName.isEmpty() || !file.renameTo(newFile)) return;
@@ -231,6 +293,7 @@ public class FirstFragment extends Fragment {
             });
             holder.selectButton.setOnClickListener(v -> checkItem(holder.detailCard, position));
             holder.saveButton.setOnClickListener(v -> {
+                if (!mSelectedRecordings.isEmpty()) return;
                 mSavingRecording = file;
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -239,6 +302,7 @@ public class FirstFragment extends Fragment {
                 startActivityForResult(intent, CREATE_FILE_CODE);
             });
             holder.shareButton.setOnClickListener(v -> {
+                if (!mSelectedRecordings.isEmpty()) return;
                 Uri fileUri = null;
                 try {
                     fileUri = FileProvider.getUriForFile(requireActivity(),
@@ -256,12 +320,7 @@ public class FirstFragment extends Fragment {
             });
             holder.deleteButton.setOnClickListener(v -> {
                 if (!mSelectedRecordings.isEmpty()) return;
-                displayAreYouSureDialog((dialog, which) -> {
-                    if (!file.delete()) return;
-                    mRecordings.remove(file);
-                    notifyItemRemoved(position);
-                    notifyItemRangeChanged(position, mRecordings.size());
-                });
+                displayAreYouSureDialog((dialog, which) -> removeRecording(file));
             });
 
             // player actions
@@ -286,18 +345,65 @@ public class FirstFragment extends Fragment {
             mOnCheckedListener = listener;
         }
 
+        public List<File> getSelectedRecordings() {
+            return mSelectedRecordings;
+        }
+
+        public void setSavingRecording(File file) {
+            mSavingRecording = file;
+        }
+
         public File getSavingFile() {
             return mSavingRecording;
         }
 
-        public void clearSavingFile() {
-            mSavingRecording = null;
+        public void removeRecording(File file) {
+            if (!file.delete()) return;
+            final int position = mRecordings.indexOf(file);
+            mRecordings.remove(file);
+            notifyItemRemoved(position);
+            notifyItemRangeChanged(position, mRecordings.size());
+        }
+
+        public boolean isFullySelected() {
+            return mSelectedRecordings.size() == mRecordings.size();
+        }
+
+        public void clearSelection() {
+            recursiveSelection(binding.recycler, false);
+            mSelectedRecordings.clear();
+            mOnCheckedListener.onChecked(mSelectedRecordings);
+        }
+
+        public void selectAll() {
+            recursiveSelection(binding.recycler, true);
+            mSelectedRecordings.clear();
+            mSelectedRecordings.addAll(mRecordings);
+            mOnCheckedListener.onChecked(mSelectedRecordings);
+        }
+
+        private void recursiveSelection(ViewGroup start, boolean select) {
+            for (int i = 0; i < start.getChildCount(); i++) {
+                final View view = start.getChildAt(i);
+                if (view instanceof ViewGroup)
+                    recursiveSelection((ViewGroup) view, select);
+                if (view instanceof MaterialCardView)
+                    ((MaterialCardView) view).setChecked(select);
+            }
         }
     }
 
     private void displayAreYouSureDialog(DialogInterface.OnClickListener listener) {
+        displayAreYouSureDialog(listener, 0);
+    }
+
+    private void displayAreYouSureDialog(DialogInterface.OnClickListener listener, int num) {
+        String msg = getString(R.string.are_you_sure_msg);
+        if (num > 0) {
+            msg = String.format(getString(R.string.are_you_sure_msg_mul), num) + msg;
+        }
         (new MaterialAlertDialogBuilder(requireContext())
-                .setMessage(R.string.are_you_sure_msg)
+                .setMessage(msg)
                 .setPositiveButton(R.string.button_yes, listener)
                 .setNegativeButton(R.string.button_no, (dialog, which) -> {})
         ).show();

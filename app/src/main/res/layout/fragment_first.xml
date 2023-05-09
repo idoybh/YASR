@@ -8,6 +8,73 @@
     tools:context=".FirstFragment">
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabSelection"
+        style="?attr/floatingActionButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="24dp"
+        android:visibility="invisible"
+        app:borderWidth="0dp"
+        app:fabCustomSize="48dp"
+        app:fabSize="auto"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/baseline_select_all_24" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabSave"
+        style="?attr/floatingActionButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:layout_margin="16dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:visibility="invisible"
+        app:fabCustomSize="48dp"
+        app:borderWidth="0dp"
+        app:fabSize="auto"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/fabSelection"
+        app:srcCompat="@drawable/baseline_save_24" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabShare"
+        style="?attr/floatingActionButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:visibility="invisible"
+        app:fabCustomSize="48dp"
+        app:borderWidth="0dp"
+        app:fabSize="auto"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/fabSave"
+        app:srcCompat="@drawable/baseline_share_24" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabDelete"
+        style="?attr/floatingActionButtonStyle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:visibility="invisible"
+        app:fabCustomSize="48dp"
+        app:borderWidth="0dp"
+        app:fabSize="auto"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/fabShare"
+        app:srcCompat="@drawable/baseline_delete_forever_24" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         style="?attr/floatingActionButtonStyle"
         android:layout_width="58dp"
