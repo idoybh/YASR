@@ -4,10 +4,12 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class FirstFragment extends Fragment {
+    private static final String MEDIA_PLAYER_THREAD_NAME = "MediaPlayer tracker";
     private static final int CREATE_FILE_CODE = 0x01;
     private static final long GB = 1000000000;
     private static final long MB = 1000000;
@@ -141,6 +144,8 @@ public class FirstFragment extends Fragment {
         binding.fabDelete.setOnClickListener(v -> displayAreYouSureDialog((dialog, which) -> {
             for (File file : mAdapter.getSelectedRecordings())
                     mAdapter.removeRecording(file);
+            for (FloatingActionButton fab : mMultiSelectFabs)
+                fab.setVisibility(View.INVISIBLE);
         }, mAdapter.getSelectedRecordings().size()));
         binding.fab.setOnClickListener(v ->
                 NavHostFragment.findNavController(FirstFragment.this)
@@ -184,13 +189,16 @@ public class FirstFragment extends Fragment {
         private final List<File> mRecordings;
         private final List<File> mSelectedRecordings = new ArrayList<>();
         private File mSavingRecording;
+        private File mPlayingRecording;
+        private RecyclerAdapter.ViewHolder mPlayingHolder;
+        private MediaPlayer mMediaPlayer;
 
         private OnCheckedListener mOnCheckedListener;
         public interface OnCheckedListener {
             void onChecked(List<File> selectedFiles);
         }
 
-        private static class ViewHolder extends RecyclerView.ViewHolder {
+        private class ViewHolder extends RecyclerView.ViewHolder {
             public final TextInputEditText fileNameTxt;
             public final TextView timeTxt;
             public final TextView typeTxt;
@@ -216,6 +224,15 @@ public class FirstFragment extends Fragment {
                 deleteButton = view.findViewById(R.id.deleteButton);
                 playProgress = view.findViewById(R.id.playProgress);
                 detailCard = view.findViewById(R.id.detailCard);
+            }
+
+            public void stopPlaying() {
+                mPlayingRecording = null;
+                mPlayingHolder = null;
+                mMediaPlayer.stop();
+                mMediaPlayer.release();
+                mMediaPlayer = null;
+                playButton.setImageResource(R.drawable.baseline_play_arrow_24);
             }
         }
 
@@ -262,7 +279,8 @@ public class FirstFragment extends Fragment {
                 timeStr = "ERROR";
             }
             holder.timeTxt.setText(timeStr);
-            holder.playProgress.setValueTo(duration);
+            holder.playProgress.setValueTo(duration * 1000);
+            final int finalDuration = (int) duration;
 
             // actions
             holder.detailCard.setOnLongClickListener(v -> {
@@ -324,6 +342,81 @@ public class FirstFragment extends Fragment {
             });
 
             // player actions
+            holder.playButton.setOnClickListener(v -> {
+                if (mPlayingRecording != null && mPlayingRecording != file) {
+                    // a different file is playing, stop it before
+                    mPlayingHolder.stopPlaying();
+                    String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                            0, 0, finalDuration / 60, finalDuration % 60);
+                    holder.timeTxt.setText(timeText);
+                } else if (mPlayingRecording != null && mMediaPlayer != null) {
+                    // this is currently playing / paused
+                    mMediaPlayer.seekTo((int) holder.playProgress.getValue());
+                    if (mMediaPlayer.isPlaying()) {
+                        mMediaPlayer.pause();
+                        holder.playButton.setImageResource(R.drawable.baseline_play_arrow_24);
+                        return;
+                    }
+                    mMediaPlayer.start();
+                    holder.playButton.setImageResource(R.drawable.baseline_pause_24);
+                    return;
+                }
+                // play this file
+                mPlayingRecording = file;
+                mPlayingHolder = holder;
+                mMediaPlayer = MediaPlayer.create(requireActivity(), Uri.fromFile(file));
+                mMediaPlayer.setLooping(false);
+                mMediaPlayer.seekTo((int) holder.playProgress.getValue());
+                mMediaPlayer.setOnCompletionListener(mp -> {
+                    holder.stopPlaying();
+                    String timeText = "%02d:%02d/%02d:%02d";
+                    long dur = 0;
+                    try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                        retriever.setDataSource(file.getPath());
+                        dur = Long.parseLong(retriever.extractMetadata(
+                                MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000 /* ms to s */;
+                        timeText = String.format(Locale.ENGLISH, timeText, 0, 0, dur / 60, dur % 60);
+                    } catch (IOException e) {
+                        timeText = "ERROR";
+                    }
+                    holder.timeTxt.setText(timeText);
+                    holder.playProgress.setValue(0);
+                });
+                holder.playProgress.setValueTo(mMediaPlayer.getDuration());
+                holder.playButton.setImageResource(R.drawable.baseline_pause_24);
+                mMediaPlayer.start();
+                new Thread(() -> {
+                    while (mPlayingRecording != null && mPlayingRecording == file
+                            && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
+                        // while this file still plays
+                        final int pos = mMediaPlayer.getCurrentPosition();
+                        holder.playProgress.setValue(pos);
+                        String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                                (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
+                        holder.timeTxt.setText(timeText);
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+                        while (mMediaPlayer != null && mPlayingRecording == file
+                                && !mMediaPlayer.isPlaying()) {
+                            // this file is now paused
+                            Thread.onSpinWait();
+                        }
+                    }
+                }, MEDIA_PLAYER_THREAD_NAME).start();
+            });
+            holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
+                if (!fromUser) return;
+                final int pos = (int) value;
+                String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                        (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
+                holder.timeTxt.setText(timeText);
+                if (mMediaPlayer == null || file != mPlayingRecording) return;
+                mMediaPlayer.seekTo(pos);
+            });
         }
 
         @Override
@@ -361,6 +454,8 @@ public class FirstFragment extends Fragment {
             if (!file.delete()) return;
             final int position = mRecordings.indexOf(file);
             mRecordings.remove(file);
+            if (mPlayingRecording == file && mMediaPlayer != null)
+                mPlayingHolder.stopPlaying();
             notifyItemRemoved(position);
             notifyItemRangeChanged(position, mRecordings.size());
         }

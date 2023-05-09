@@ -87,9 +87,9 @@ public class RecordingService extends Service {
         mRecorder.setOutputFormat(getFileExtension(recordFile).equals(THREE_GPP_EXT)
                 ? MediaRecorder.OutputFormat.THREE_GPP
                 : MediaRecorder.OutputFormat.MPEG_4);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mRecorder.setAudioSamplingRate(mOptions.getSamplingRate());
-        mRecorder.setAudioEncodingBitRate(mOptions.getEncodingRate());
+        mRecorder.setAudioEncodingBitRate(mOptions.getSamplingRate() * mOptions.getEncodingRate());
         mRecorder.setAudioChannels(mOptions.getChannels());
         final int[] limit = mOptions.getLimit();
         if (limit != null) {
