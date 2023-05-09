@@ -1,5 +1,6 @@
 package com.idoybh.yasr;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -7,10 +8,12 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
-import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -53,6 +56,7 @@ public class FirstFragment extends Fragment {
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
     private volatile boolean mWaitingForResults = false;
+    private HandlerThread mProgressHT;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -227,6 +231,8 @@ public class FirstFragment extends Fragment {
             }
 
             public void stopPlaying() {
+                if (mProgressHT != null && mProgressHT.isAlive())
+                    mProgressHT.quit();
                 mPlayingRecording = null;
                 mPlayingHolder = null;
                 mMediaPlayer.stop();
@@ -380,33 +386,41 @@ public class FirstFragment extends Fragment {
                         timeText = "ERROR";
                     }
                     holder.timeTxt.setText(timeText);
-                    holder.playProgress.setValue(0);
+                    animateSliderValue(holder.playProgress, 0);
                 });
                 holder.playProgress.setValueTo(mMediaPlayer.getDuration());
                 holder.playButton.setImageResource(R.drawable.baseline_pause_24);
                 mMediaPlayer.start();
-                new Thread(() -> {
-                    while (mPlayingRecording != null && mPlayingRecording == file
-                            && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
-                        // while this file still plays
-                        final int pos = mMediaPlayer.getCurrentPosition();
-                        holder.playProgress.setValue(pos);
-                        String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                                (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
-                        holder.timeTxt.setText(timeText);
+                if (mProgressHT != null && mProgressHT.isAlive())
+                    mProgressHT.quit();
+                mProgressHT = new HandlerThread(MEDIA_PLAYER_THREAD_NAME);
+                mProgressHT.start();
+                Handler handler = new Handler(mProgressHT.getLooper());
+                requireActivity().runOnUiThread(() -> handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        final boolean plays = mPlayingRecording != null &&
+                                mPlayingRecording == file && mMediaPlayer != null;
                         try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            return;
-                        }
-                        while (mMediaPlayer != null && mPlayingRecording == file
-                                && !mMediaPlayer.isPlaying()) {
-                            // this file is now paused
-                            Thread.onSpinWait();
+                            if (plays && mMediaPlayer.isPlaying()) {
+                                final int pos = mMediaPlayer.getCurrentPosition();
+                                animateSliderValue(holder.playProgress, pos);
+                                String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                                        (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
+                                holder.timeTxt.setText(timeText);
+                            }
+                            if (plays) {
+                                // while this file still plays
+                                handler.postDelayed(this, 100);
+                                return;
+                            }
+                            mProgressHT.quit();
+                        } catch (Exception e) {
+                            if (plays) handler.postDelayed(this, 100);
+                            else mProgressHT.quit();
                         }
                     }
-                }, MEDIA_PLAYER_THREAD_NAME).start();
+                }));
             });
             holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
                 if (!fromUser) return;
@@ -417,6 +431,33 @@ public class FirstFragment extends Fragment {
                 if (mMediaPlayer == null || file != mPlayingRecording) return;
                 mMediaPlayer.seekTo(pos);
             });
+            holder.playProgress.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
+                @Override
+                public void onStartTrackingTouch(@NonNull Slider slider) {
+                    if (mMediaPlayer == null || mPlayingRecording != file || !mMediaPlayer.isPlaying())
+                        return;
+                    mMediaPlayer.pause();
+                }
+
+                @Override
+                public void onStopTrackingTouch(@NonNull Slider slider) {
+                    if (mMediaPlayer == null || mPlayingRecording != file || mMediaPlayer.isPlaying())
+                        return;
+                    mMediaPlayer.start();
+                }
+            });
+        }
+
+        private static void animateSliderValue(Slider slider, float value) {
+            final ValueAnimator animator = ValueAnimator.ofFloat(slider.getValue(), value);
+            final float width = Math.abs(slider.getValue() - value);
+            animator.setDuration(width > slider.getValueTo() / 5f ? 500 : 200);
+            animator.setFloatValues(slider.getValue(), value);
+            animator.addUpdateListener(animation -> {
+                final float val = (float) animation.getAnimatedValue();
+                slider.setValue(val);
+            });
+            animator.start();
         }
 
         @Override
