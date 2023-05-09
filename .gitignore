@@ -19,3 +19,4 @@ gradle/caches/
 gradle/daemon/
 gradle/native/
 gradle/wrapper/dists/
+.idea/deploymentTargetDropDown.xml

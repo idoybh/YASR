@@ -2,7 +2,7 @@
     <string name="app_name">YASR</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">SoundRecorder</string>
+    <string name="first_fragment_label">@string/app_name</string>
     <string name="record_fragment_label">Add a recording</string>
 
     <string name="add_recording">Add recording</string>
@@ -14,9 +14,9 @@
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
     <string name="service_notification_text">Audio recording in progress</string>
-    <string name="out_selector_mp4">mp4</string>
+    <string name="out_selector_flac">flac</string>
+    <string name="out_selector_mp4">mp3</string>
     <string name="out_selector_3gp">3gp</string>
-    <string name="unit_meters">m</string>
     <string name="locating">Locating…</string>
     <string name="location_access_denied">Location access denied</string>
     <string name="hd">HD</string>
@@ -30,8 +30,14 @@
     <string name="channels_txt">Channels:</string>
     <string name="limit_txt">Limit by:</string>
     <string name="unlimited_txt">Unlimited</string>
+    <string name="unit_meters">m</string>
+    <string name="unit_gb">GB</string>
     <string name="unit_mb">MB</string>
     <string name="unit_kb">kB</string>
     <string name="unit_seconds">s</string>
     <string name="info_txt" formatted="false">Sampling rate: %.1f kHz Encoding rate: %d bit/s</string>
+    <string name="are_you_sure_msg">This action cannot be undone\nAre you sure?</string>
+    <string name="button_yes">Yes</string>
+    <string name="button_no">No</string>
+    <string name="invalid_name">Invalid name</string>
 </resources>

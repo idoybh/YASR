@@ -11,7 +11,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,7 +23,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.idoybh.yasr.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,20 +55,6 @@ public class MainActivity extends AppCompatActivity {
                 arr = missingPerms.toArray(arr);
                 requestPermissions(arr, PERMISSION_REQUEST_CODE);
             });
-        }
-
-        List<File> recordings = new ArrayList<>();
-        File fileDir = getFilesDir();
-        File[] files = fileDir.listFiles();
-        if (files == null) return;
-        for (File file : files) {
-            if (file.isDirectory()) continue;
-            final String fileName = file.getName();
-            final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
-            final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-            if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
-                recordings.add(file);
-            }
         }
     }
 

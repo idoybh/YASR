@@ -14,4 +14,10 @@
         <item name="android:minWidth">54dp</item>
         <item name="android:minHeight">54dp</item>
     </style>
+
+    <style name="Widget.App.TextInputLayout.Card" parent="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
+
 </resources>
