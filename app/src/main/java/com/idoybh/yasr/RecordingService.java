@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class RecordingService extends Service {
     public static final String EXTRA_OPTS = "extra_opts";
-    public static final String MPEG_4_EXT = "mp4";
+    public static final String MPEG_4_EXT = "mp3";
     public static final String THREE_GPP_EXT = "3gp";
     private static final String NOTIFICATION_CHANNEL = "Recording Service";
     private static final int NOTIFICATION_ID = 0x01;

@@ -15,7 +15,7 @@
     <string name="button_exit">Exit</string>
     <string name="service_notification_text">Audio recording in progress</string>
     <string name="out_selector_flac">flac</string>
-    <string name="out_selector_mp4">mp3</string>
+    <string name="out_selector_mp3">mp3</string>
     <string name="out_selector_3gp">3gp</string>
     <string name="locating">Locating…</string>
     <string name="location_access_denied">Location access denied</string>

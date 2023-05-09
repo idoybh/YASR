@@ -111,7 +111,7 @@
             style="@style/Widget.App.Button.OutlinedButton.Selector"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/out_selector_mp4" />
+            android:text="@string/out_selector_mp3" />
 
         <Button
             android:id="@+id/outputBtn3GP"
