@@ -13,7 +13,6 @@ import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -119,6 +118,7 @@ public class FirstFragment extends Fragment {
                 intent.setType(mime);
                 intent.putExtra(Intent.EXTRA_TITLE, name);
                 mWaitingForResults = true;
+                //noinspection deprecation
                 startActivityForResult(intent, CREATE_FILE_CODE);
                 while (mWaitingForResults) Thread.onSpinWait();
             }
@@ -153,7 +153,8 @@ public class FirstFragment extends Fragment {
         }, mAdapter.getSelectedRecordings().size()));
         binding.fab.setOnClickListener(v ->
                 NavHostFragment.findNavController(FirstFragment.this)
-                .navigate(R.id.action_FirstFragment_to_RecordFragment));
+                .navigate(R.id.action_FirstFragment_to_RecordFragment)
+        );
     }
 
     @Override
@@ -162,6 +163,7 @@ public class FirstFragment extends Fragment {
         binding = null;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         mWaitingForResults = false;
@@ -279,15 +281,19 @@ public class FirstFragment extends Fragment {
             try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
                 retriever.setDataSource(file.getPath());
                 duration = Long.parseLong(retriever.extractMetadata(
-                        MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000 /* ms to s */;
-                timeStr = String.format(Locale.ENGLISH, timeStr, 0, 0, duration / 60, duration % 60);
+                        MediaMetadataRetriever.METADATA_KEY_DURATION));
+                final int durationSub = Math.round((float) duration / 1000);
+                timeStr = String.format(Locale.ENGLISH, timeStr, 0, 0,
+                        durationSub / 60, durationSub % 60);
             } catch (Exception e) {
-                duration = 1;
+                duration = -1;
                 timeStr = "ERROR";
             }
             holder.timeTxt.setText(timeStr);
-            holder.playProgress.setValueTo(duration * 1000);
-            final int finalDuration = (int) duration;
+            if (duration > 0)
+                holder.playProgress.setValueTo(duration);
+            final long finalDuration = duration;
+            final int finalDurationInt = Math.round((float) duration / 1000);
 
             // actions
             holder.detailCard.setOnLongClickListener(v -> {
@@ -324,6 +330,7 @@ public class FirstFragment extends Fragment {
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType(mime);
                 intent.putExtra(Intent.EXTRA_TITLE, name);
+                //noinspection deprecation
                 startActivityForResult(intent, CREATE_FILE_CODE);
             });
             holder.shareButton.setOnClickListener(v -> {
@@ -354,7 +361,7 @@ public class FirstFragment extends Fragment {
                     // a different file is playing, stop it before
                     mPlayingHolder.stopPlaying();
                     String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                            0, 0, finalDuration / 60, finalDuration % 60);
+                            0, 0, finalDurationInt / 60, finalDurationInt % 60);
                     holder.timeTxt.setText(timeText);
                 } else if (mPlayingRecording != null && mMediaPlayer != null) {
                     // this is currently playing / paused
@@ -377,19 +384,11 @@ public class FirstFragment extends Fragment {
                 mMediaPlayer.setOnCompletionListener(mp -> {
                     holder.stopPlaying();
                     String timeText = "%02d:%02d/%02d:%02d";
-                    long dur = 0;
-                    try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
-                        retriever.setDataSource(file.getPath());
-                        dur = Long.parseLong(retriever.extractMetadata(
-                                MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000 /* ms to s */;
-                        timeText = String.format(Locale.ENGLISH, timeText, 0, 0, dur / 60, dur % 60);
-                    } catch (IOException e) {
-                        timeText = "ERROR";
-                    }
+                    timeText = String.format(Locale.ENGLISH, timeText, 0, 0,
+                            finalDurationInt / 60, finalDurationInt % 60);
                     holder.timeTxt.setText(timeText);
                     animateSliderValue(holder.playProgress, 0);
                 });
-                holder.playProgress.setValueTo(mMediaPlayer.getDuration());
                 holder.playButton.setImageResource(R.drawable.baseline_pause_24);
                 mMediaPlayer.start();
                 if (mProgressHT != null && mProgressHT.isAlive())
@@ -398,26 +397,28 @@ public class FirstFragment extends Fragment {
                 mProgressHT.start();
                 Handler handler = new Handler(mProgressHT.getLooper());
                 requireActivity().runOnUiThread(() -> handler.post(new Runnable() {
+                    private static final int DELAY_MS = 50;
                     @Override
                     public void run() {
                         final boolean plays = mPlayingRecording != null &&
                                 mPlayingRecording == file && mMediaPlayer != null;
                         try {
                             if (plays && mMediaPlayer.isPlaying()) {
-                                final int pos = mMediaPlayer.getCurrentPosition();
+                                int pos = mMediaPlayer.getCurrentPosition();
                                 animateSliderValue(holder.playProgress, pos);
+                                pos /= 1000;
                                 String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                                        (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
+                                        pos / 60, pos % 60, finalDurationInt / 60, finalDurationInt % 60);
                                 holder.timeTxt.setText(timeText);
                             }
                             if (plays) {
                                 // while this file still plays
-                                handler.postDelayed(this, 100);
+                                handler.postDelayed(this, DELAY_MS);
                                 return;
                             }
                             mProgressHT.quit();
                         } catch (Exception e) {
-                            if (plays) handler.postDelayed(this, 100);
+                            if (plays) handler.postDelayed(this, DELAY_MS);
                             else mProgressHT.quit();
                         }
                     }
@@ -427,7 +428,8 @@ public class FirstFragment extends Fragment {
                 if (!fromUser) return;
                 final int pos = (int) value;
                 String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                        (pos / 1000) / 60, (pos / 1000) % 60, finalDuration / 60, finalDuration % 60);
+                        (pos / 1000) / 60, (pos / 1000) % 60,
+                        (finalDuration / 1000) / 60, (finalDuration / 1000) % 60);
                 holder.timeTxt.setText(timeText);
                 if (mMediaPlayer == null || file != mPlayingRecording) return;
                 mMediaPlayer.seekTo(pos);
@@ -452,7 +454,7 @@ public class FirstFragment extends Fragment {
         private static void animateSliderValue(Slider slider, float value) {
             final ValueAnimator animator = ValueAnimator.ofFloat(slider.getValue(), value);
             final float width = Math.abs(slider.getValue() - value);
-            animator.setDuration(width > slider.getValueTo() / 5f ? 500 : 200);
+            animator.setDuration(width > slider.getValueTo() / 4f ? 500 : 100);
             animator.setFloatValues(slider.getValue(), value);
             animator.addUpdateListener(animation -> {
                 final float val = (float) animation.getAnimatedValue();
