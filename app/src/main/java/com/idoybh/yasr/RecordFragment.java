@@ -152,19 +152,20 @@ public class RecordFragment extends Fragment {
                 ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
 
         Calendar now = Calendar.getInstance();
-        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d",
+        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d%02d",
                 now.get(Calendar.YEAR),
                 now.get(Calendar.MONTH),
                 now.get(Calendar.DAY_OF_MONTH),
                 now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE));
+                now.get(Calendar.MINUTE),
+                now.get(Calendar.SECOND));
         binding.recordingNameInputText.setText(mDefaultName);
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
 
         // loading shared prefs / defaults
-        final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
+        final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
         int outID = binding.outputBtnMP4.getId();
         if (outPref.equals(RecordingService.OGG_EXT))
             outID = binding.outputBtnOGG.getId();
@@ -439,17 +440,17 @@ public class RecordFragment extends Fragment {
             mRecorder = null;
             mNoiseTimer.cancel();
             final File tmpFile = new File(requireContext().getCacheDir()
-                    + File.separator + "tmp.3gp");
+                    + File.separator + "tmp.mp3");
             if (tmpFile.exists()) tmpFile.delete();
         }
         final AudioDeviceInfo info = mAudioDevices.get(mSelectedDeviceIndex);
         mRecorder = new MediaRecorder(requireContext());
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mRecorder.setPreferredDevice(info);
-        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         try {
-            mRecorder.setOutputFile(File.createTempFile("tmp", ".3gp",
+            mRecorder.setOutputFile(File.createTempFile("tmp", ".mp3",
                     requireContext().getCacheDir()));
             mRecorder.prepare();
             mRecorder.start();
