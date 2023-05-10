@@ -15,7 +15,6 @@ import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
@@ -69,29 +68,60 @@ public class RecordFragment extends Fragment {
         return binding.getRoot();
     }
 
+    @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        mOptionViews = Arrays.asList(
+                binding.deviceMenu,
+                binding.recordingNameInputText,
+                binding.outputToggle,
+                binding.qualityToggle,
+                binding.limitToggle,
+                binding.limitSlider,
+                binding.channelToggle
+        );
 
         // polling & filtering input audio devices
         AudioManager am = (AudioManager) requireContext().getSystemService(Context.AUDIO_SERVICE);
         AudioDeviceInfo[] allDevices = am.getDevices(AudioManager.GET_DEVICES_INPUTS);
         mAudioDevices = new ArrayList<>();
+        boolean builtInAdded = false;
         for (AudioDeviceInfo device : allDevices) {
-            boolean found = false;
+            final int type = device.getType();
+            if (type == AudioDeviceInfo.TYPE_REMOTE_SUBMIX) continue;
+            if (type == AudioDeviceInfo.TYPE_TELEPHONY) continue;
+            if (type == AudioDeviceInfo.TYPE_FM_TUNER) continue;
+            AudioDeviceInfo cDevice = device;
+            AudioDeviceInfo found = null;
             for (AudioDeviceInfo device2 : mAudioDevices) {
-                if (device2.getProductName().equals(device.getProductName())) {
-                    found = true;
+                final String fullName = device.getProductName() + device.getAddress();
+                final String fullName2 = device2.getProductName() + device2.getAddress();
+                if (fullName.equals(fullName2)) {
+                    found = device2;
                     break;
                 }
             }
-            if (found) continue;
-            mAudioDevices.add(device);
+            if (found != null && isAudioDeviceBetter(found, device)) {
+                cDevice = found;
+            } else if (found != null) {
+                continue;
+            }
+            if (cDevice.getType() == AudioDeviceInfo.TYPE_BUILTIN_MIC && !builtInAdded) {
+                builtInAdded = true;
+                mAudioDevices.add(0, cDevice);
+                continue;
+            }
+            mAudioDevices.add(cDevice);
         }
         final String inputPref = getPrefs().getString(PREF_INPUT_DEVICE, null);
         int c = 0;
         ArrayList<String> deviceNames = new ArrayList<>();
         for (AudioDeviceInfo device : mAudioDevices) {
-            final String deviceName = device.getProductName().toString();
+            String deviceName = device.getProductName().toString();
+            String addr = device.getAddress();
+            if (addr != null && !addr.isEmpty())
+                deviceName += " (" + addr + ")";
             if (deviceName.isEmpty()) continue;
             deviceNames.add(deviceName);
             if (deviceName.equals(inputPref))
@@ -109,19 +139,10 @@ public class RecordFragment extends Fragment {
         }
 
         // settings up the rest of the views + listeners
-        binding.deviceMenu.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mSelectedDeviceIndex = position;
-                updateInfoText();
-                registerToMicAmp();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                binding.deviceMenu.setListSelection(0);
-                binding.deviceMenu.setText(mAudioDevices.get(0).getProductName(), false);
-            }
+        binding.deviceMenu.setOnItemClickListener((parent, view1, position, id) -> {
+            mSelectedDeviceIndex = position;
+            updateInfoText();
+            registerToMicAmp();
         });
 
         binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) ->
@@ -159,18 +180,33 @@ public class RecordFragment extends Fragment {
         final int limitValPref = getPrefs().getInt(PREF_LIMIT_VALUE, 0);
         binding.limitSlider.setValue(limitValPref);
 
-        mOptionViews = Arrays.asList(
-                binding.deviceMenu,
-                binding.recordingNameInputText,
-                binding.outputToggle,
-                binding.qualityToggle,
-                binding.limitToggle,
-                binding.limitSlider,
-                binding.channelToggle
-        );
-
         updateInfoText();
         registerToMicAmp();
+    }
+
+    private static boolean isAudioDeviceBetter(AudioDeviceInfo device1, AudioDeviceInfo device2) {
+        // by # input channels
+        final int[] channels1 = device1.getChannelCounts();
+        int maxChannels1 = channels1.length == 0 ? Integer.MAX_VALUE : 1;
+        for (Integer c : channels1)
+            if (c > maxChannels1) maxChannels1 = c;
+        final int[] channels2 = device2.getChannelCounts();
+        int maxChannels2 = channels2.length == 0 ? Integer.MAX_VALUE : 1;
+        for (Integer c : channels2)
+            if (c > maxChannels2) maxChannels2 = c;
+        if (maxChannels2 > maxChannels1)
+            return true; // 2nd device has more input channels
+
+        // by sample rate
+        final int[] samples1 = device1.getSampleRates();
+        int maxSamples1 = samples1.length == 0 ? Integer.MAX_VALUE : 1;
+        for (Integer c : samples1)
+            if (c > maxSamples1) maxSamples1 = c;
+        final int[] samples2 = device2.getSampleRates();
+        int maxSamples2 = samples2.length == 0 ? Integer.MAX_VALUE : 1;
+        for (Integer c : samples2)
+            if (c > maxSamples2) maxSamples2 = c;
+        return maxSamples2 > maxSamples1; // 2nd device has a higher sample rate
     }
 
     @Override
