@@ -275,13 +275,14 @@ public class FirstFragment extends Fragment {
             }
             holder.sizeTxt.setText(sizeText);
             String timeStr = "%02d:%02d/%02d:%02d";
-            long duration = 0;
+            long duration;
             try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
                 retriever.setDataSource(file.getPath());
                 duration = Long.parseLong(retriever.extractMetadata(
                         MediaMetadataRetriever.METADATA_KEY_DURATION)) / 1000 /* ms to s */;
                 timeStr = String.format(Locale.ENGLISH, timeStr, 0, 0, duration / 60, duration % 60);
-            } catch (IOException e) {
+            } catch (Exception e) {
+                duration = 1;
                 timeStr = "ERROR";
             }
             holder.timeTxt.setText(timeStr);

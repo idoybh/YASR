@@ -15,7 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Main application service - manages all recording procedure
@@ -23,9 +25,17 @@ import java.util.List;
 public class RecordingService extends Service {
     public static final String EXTRA_OPTS = "extra_opts";
     public static final String MPEG_4_EXT = "mp3";
-    public static final String THREE_GPP_EXT = "3gp";
+    public static final String OGG_EXT = "ogg";
     private static final String NOTIFICATION_CHANNEL = "Recording Service";
     private static final int NOTIFICATION_ID = 0x01;
+    private static final Map<String, Integer> EXT_TO_OUT = new HashMap<>(Map.of(
+            MPEG_4_EXT, MediaRecorder.OutputFormat.MPEG_4,
+            OGG_EXT, MediaRecorder.OutputFormat.OGG
+    ));
+    private static final Map<Integer, Integer> OUT_TO_ENCODER = new HashMap<>(Map.of(
+            MediaRecorder.OutputFormat.MPEG_4, MediaRecorder.AudioEncoder.AAC,
+            MediaRecorder.OutputFormat.OGG, MediaRecorder.AudioEncoder.OPUS
+    ));
     private final IBinder binder = new LocalBinder();
     private RecordOptions mOptions;
     private MediaRecorder mRecorder;
@@ -40,7 +50,8 @@ public class RecordingService extends Service {
         void onStatusChanged(int status, int extra);
     }
 
-    public RecordingService() {}
+    public RecordingService() {
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -77,16 +88,16 @@ public class RecordingService extends Service {
         mOptions = options;
     }
 
+    @SuppressWarnings("ConstantConditions")
     public synchronized void startRecording() {
         if (mStatus == Status.STARTED) return;
         final File recordFile = mOptions.getFile();
+        final int outFormat = EXT_TO_OUT.getOrDefault(getFileExtension(recordFile), -1);
         mRecorder = new MediaRecorder(this);
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mRecorder.setPreferredDevice(mOptions.getSource());
-        mRecorder.setOutputFormat(getFileExtension(recordFile).equals(THREE_GPP_EXT)
-                ? MediaRecorder.OutputFormat.THREE_GPP
-                : MediaRecorder.OutputFormat.MPEG_4);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mRecorder.setOutputFormat(outFormat);
+        mRecorder.setAudioEncoder(OUT_TO_ENCODER.get(outFormat));
         mRecorder.setAudioSamplingRate(mOptions.getSamplingRate());
         mRecorder.setAudioEncodingBitRate(mOptions.getSamplingRate() * mOptions.getEncodingRate());
         mRecorder.setAudioChannels(mOptions.getChannels());
@@ -111,7 +122,7 @@ public class RecordingService extends Service {
         try {
             mRecorder.prepare();
             mRecorder.start();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             updateListeners(Status.FAILED, -1);
         }

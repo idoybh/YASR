@@ -15,7 +15,7 @@
     <string name="service_notification_text">Audio recording in progress</string>
     <string name="out_selector_flac">flac</string>
     <string name="out_selector_mp3">mp3</string>
-    <string name="out_selector_3gp">3gp</string>
+    <string name="out_selector_ogg">ogg</string>
     <string name="hd">HD</string>
     <string name="sd">SD</string>
     <string name="ld">LD</string>

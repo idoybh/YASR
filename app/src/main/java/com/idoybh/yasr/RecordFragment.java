@@ -49,14 +49,12 @@ public class RecordFragment extends Fragment {
     private FragmentRecordBinding binding;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
-    @SuppressWarnings("FieldMayBeFinal")
-    private List<AudioDeviceInfo> mAudioDevices = new ArrayList<>();
-    private int mMaxNoiseDetected = 50;
+    private List<AudioDeviceInfo> mAudioDevices;
     private int mSelectedDeviceIndex = 0;
     private int mSampleRate;
     private int mEncodeRate;
     private int mLimitMode = LIMIT_MODE_SIZE;
-    private List<View> mOptionViews = new ArrayList<>();
+    private List<View> mOptionViews;
     private File mCurrentRecordingFile;
     private String mDefaultName;
     private String mTotalDurationStr;
@@ -77,6 +75,7 @@ public class RecordFragment extends Fragment {
         // polling & filtering input audio devices
         AudioManager am = (AudioManager) requireContext().getSystemService(Context.AUDIO_SERVICE);
         AudioDeviceInfo[] allDevices = am.getDevices(AudioManager.GET_DEVICES_INPUTS);
+        mAudioDevices = new ArrayList<>();
         for (AudioDeviceInfo device : allDevices) {
             boolean found = false;
             for (AudioDeviceInfo device2 : mAudioDevices) {
@@ -146,8 +145,8 @@ public class RecordFragment extends Fragment {
         // loading shared prefs / defaults
         final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
         int outID = binding.outputBtnMP4.getId();
-        if (outPref.equals(RecordingService.THREE_GPP_EXT))
-            outID = binding.outputBtn3GP.getId();
+        if (outPref.equals(RecordingService.OGG_EXT))
+            outID = binding.outputBtnOGG.getId();
         binding.outputToggle.check(outID);
         final int qualityPref = getPrefs().getInt(PREF_OUTPUT_QUALITY, 0);
         binding.qualityToggle.check(binding.qualityToggle.getChildAt(qualityPref).getId());
@@ -194,8 +193,8 @@ public class RecordFragment extends Fragment {
             editor.putString(PREF_INPUT_DEVICE, binding.deviceMenu.getText().toString());
             if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnMP4)
                 editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
-            else if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtn3GP)
-                editor.putString(PREF_OUTPUT_EXT, RecordingService.THREE_GPP_EXT);
+            else if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnOGG)
+                editor.putString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
             for (int i = 0; i < binding.qualityToggle.getChildCount(); i++) {
                 final int id = binding.qualityToggle.getChildAt(i).getId();
                 if (id == binding.qualityToggle.getCheckedButtonId()) {
@@ -277,8 +276,9 @@ public class RecordFragment extends Fragment {
                 limit[0] = mLimitMode;
                 limit[1] = limitValue;
             }
-            final String ext = binding.outputToggle.getCheckedButtonId() == R.id.outputBtn3GP
-                    ? RecordingService.THREE_GPP_EXT : RecordingService.MPEG_4_EXT;
+            String ext = RecordingService.MPEG_4_EXT;
+            if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnOGG)
+                ext = RecordingService.OGG_EXT;
             final Editable editText = binding.recordingNameInputText.getText();
             final String fileName = (editText == null || editText.toString().isEmpty()
                     ? mDefaultName : editText.toString()) + "." + ext;
@@ -390,12 +390,6 @@ public class RecordFragment extends Fragment {
                 return;
             }
             final int noise = mRecorder.getMaxAmplitude();
-            if (noise > mMaxNoiseDetected) {
-                mMaxNoiseDetected = noise;
-                binding.audioBar.getHandler().post(() -> {
-                    if (binding != null) binding.audioBar.setMax(noise);
-                });
-            }
             binding.audioBar.getHandler().post(() -> {
                 if (binding != null) binding.audioBar.setProgress(noise, true);
             });
@@ -427,8 +421,7 @@ public class RecordFragment extends Fragment {
             e.printStackTrace();
         }
         binding.audioBar.setMin(mRecorder.getMaxAmplitude() /* 0 */);
-        binding.audioBar.setMax(1000);
-        mMaxNoiseDetected = 1000;
+        binding.audioBar.setMax(10000); // consider making dynamic again
         mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
     }
 

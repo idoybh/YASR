@@ -100,11 +100,18 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="2dp"
-        app:checkedButton="@id/outputBtnMP4"
+        app:checkedButton="@id/outputBtnOGG"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/outputTxt"
         app:selectionRequired="true"
         app:singleSelection="true">
+
+        <Button
+            android:id="@+id/outputBtnOGG"
+            style="@style/Widget.App.Button.OutlinedButton.Selector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/out_selector_ogg" />
 
         <Button
             android:id="@+id/outputBtnMP4"
@@ -112,13 +119,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/out_selector_mp3" />
-
-        <Button
-            android:id="@+id/outputBtn3GP"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/out_selector_3gp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <TextView
