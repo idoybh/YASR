@@ -6,7 +6,6 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
 import android.media.AudioDeviceInfo;
 import android.media.MediaRecorder;
 import android.os.Binder;
@@ -100,10 +99,6 @@ public class RecordingService extends Service {
             }
         }
         mRecorder.setOutputFile(mOptions.getFile());
-        final Location location = mOptions.getLocation();
-        if (location != null) mRecorder.setLocation(
-                (float) location.getLatitude(),
-                (float) location.getLongitude());
         mRecorder.setOnInfoListener((mr, what, extra) -> {
             if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED ||
                     what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED) {
@@ -216,7 +211,6 @@ public class RecordingService extends Service {
         private final int mEncodingRate;
         private final int mChannels;
         private final int[] mLimit;
-        private final Location mLocation;
 
         /**
          * Recording options collection
@@ -227,17 +221,15 @@ public class RecordingService extends Service {
          * @param channels the number of channels to record with
          * @param limit array of { limit mode, limit } where limit is either in seconds or MB
          *              null disables
-         * @param location location to save to the metadata. pass null to disable
          */
         public RecordOptions(File file, AudioDeviceInfo source, int samplingRate, int encodingRate,
-                             int channels, int[] limit, Location location) {
+                             int channels, int[] limit) {
             mFile = file;
             mSource = source;
             mSamplingRate = samplingRate;
             mEncodingRate = encodingRate;
             mChannels = channels;
             mLimit = limit;
-            mLocation = location;
         }
 
         public File getFile() {
@@ -259,10 +251,6 @@ public class RecordingService extends Service {
 
         public int[] getLimit() {
             return mLimit;
-        }
-
-        public Location getLocation() {
-            return mLocation;
         }
     }
 

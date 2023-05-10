@@ -262,50 +262,6 @@
         app:layout_constraintTop_toBottomOf="@+id/limitToggle" />
 
     <TextView
-        android:id="@+id/locationText"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:fontFamily="sans-serif-light"
-        android:gravity="center"
-        android:textAlignment="viewStart"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toTopOf="@+id/audioBar"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/locationToggle"
-        tools:ignore="RtlCompat" />
-
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/locationToggle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/audioBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:checkedButton="@id/locationOffButton"
-        app:selectionRequired="true"
-        app:singleSelection="true">
-
-        <Button
-            android:id="@+id/locationOnButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/baseline_location_on_24"
-            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
-
-        <Button
-            android:id="@+id/locationOffButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/baseline_location_off_24"
-            style="@style/Widget.App.Button.OutlinedButton.IconOnly"/>
-    </com.google.android.material.button.MaterialButtonToggleGroup>
-
-    <TextView
         android:id="@+id/infoTxt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -321,7 +277,6 @@
         android:layout_marginStart="4dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:animationResolution="1"
         android:indeterminate="false"
         android:max="500"
         android:paddingVertical="16dp"

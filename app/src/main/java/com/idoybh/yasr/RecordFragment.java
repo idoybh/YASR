@@ -1,14 +1,10 @@
 package com.idoybh.yasr;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.location.Location;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -22,15 +18,9 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
-import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.idoybh.yasr.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,7 +42,6 @@ public class RecordFragment extends Fragment {
     private static final String PREF_CHANNELS = "output_channels";
     private static final String PREF_LIMIT_MODE = "limit_mode";
     private static final String PREF_LIMIT_VALUE = "limit_value";
-    private static final String PREF_SAVE_LOCATION = "save_location";
 
     public static final int LIMIT_MODE_SIZE = 0;
     public static final int LIMIT_MODE_TIME = 1;
@@ -60,8 +49,6 @@ public class RecordFragment extends Fragment {
     private FragmentRecordBinding binding;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
-    private FusedLocationProviderClient mLocationClient;
-    private Location mLocation;
     @SuppressWarnings("FieldMayBeFinal")
     private List<AudioDeviceInfo> mAudioDevices = new ArrayList<>();
     private int mMaxNoiseDetected = 50;
@@ -154,7 +141,6 @@ public class RecordFragment extends Fragment {
         binding.recordingNameInputText.setText(mDefaultName);
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
-        binding.locationToggle.addOnButtonCheckedListener(this::onLocationClicked);
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
 
         // loading shared prefs / defaults
@@ -173,15 +159,10 @@ public class RecordFragment extends Fragment {
                 ? binding.limitBtnTime.getId() : binding.limitBtnSize.getId());
         final int limitValPref = getPrefs().getInt(PREF_LIMIT_VALUE, 0);
         binding.limitSlider.setValue(limitValPref);
-        final boolean saveLocationPref = getPrefs().getBoolean(PREF_SAVE_LOCATION, false);
-        binding.locationToggle.check(saveLocationPref
-                ? binding.locationOnButton.getId() : binding.locationOffButton.getId());
-        if (saveLocationPref) addLocation();
 
         mOptionViews = Arrays.asList(
                 binding.deviceMenu,
                 binding.recordingNameInputText,
-                binding.locationToggle,
                 binding.outputToggle,
                 binding.qualityToggle,
                 binding.limitToggle,
@@ -226,8 +207,6 @@ public class RecordFragment extends Fragment {
                     binding.channelToggle.getCheckedButtonId() == R.id.channelBtn1 ? 1 : 2);
             editor.putInt(PREF_LIMIT_MODE, mLimitMode);
             editor.putInt(PREF_LIMIT_VALUE, (int) binding.limitSlider.getValue());
-            editor.putBoolean(PREF_SAVE_LOCATION,
-                    binding.locationToggle.getCheckedButtonId() == R.id.locationOnButton);
             editor.apply();
             return;
         }
@@ -280,21 +259,6 @@ public class RecordFragment extends Fragment {
         binding.limitSlider.setValue(0); // refresh the label, ensure in bounds
     }
 
-    private void onLocationClicked(MaterialButtonToggleGroup group, int checkedId, boolean isChecked) {
-        if (checkedId != R.id.locationOnButton) return;
-        if (!isChecked) {
-            mLocationClient = null;
-            mLocation = null;
-            binding.locationText.setText("");
-            return;
-        }
-        if (checkOrAskForLocationPerm()) {
-            addLocation();
-            return;
-        }
-        binding.locationText.setText(R.string.location_access_denied);
-    }
-
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -320,7 +284,7 @@ public class RecordFragment extends Fragment {
                     ? mDefaultName : editText.toString()) + "." + ext;
             mCurrentRecordingFile = new File(requireContext().getFilesDir(), fileName);
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
-                    mCurrentRecordingFile, info, mSampleRate, mEncodeRate, channels, limit, mLocation);
+                    mCurrentRecordingFile, info, mSampleRate, mEncodeRate, channels, limit);
             mService.setOptions(opts);
             mService.addListener(mStatusListener);
             mService.startRecording();
@@ -515,43 +479,6 @@ public class RecordFragment extends Fragment {
         mDurationTimer = null;
         mDurationTimerTask.cancel();
         mDurationTimerTask = null;
-    }
-
-    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), map -> {
-                for (Boolean result : map.values()) {
-                    if (result) {
-                        addLocation();
-                        return;
-                    }
-                }
-            });
-
-    private boolean checkOrAskForLocationPerm() {
-        if (requireContext().checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                requireContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        final String[] perms = { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION };
-        requestPermissionLauncher.launch(perms);
-        return false;
-    }
-
-    @SuppressLint("MissingPermission")
-    private void addLocation() {
-        binding.locationText.setText(getString(R.string.locating));
-        if (mLocationClient == null)
-            mLocationClient = LocationServices.getFusedLocationProviderClient(requireContext());
-        mLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener(location -> {
-                    // Got last known location. In some rare situations this can be null.
-                    if (location == null) return;
-                    mLocation = location;
-                    String locationStr = location.getLatitude() + " : " + location.getLongitude();
-                    if (location.hasAccuracy())
-                        locationStr += " ±" + Math.round(location.getAccuracy()) + getString(R.string.unit_meters);
-                    binding.locationText.setText(locationStr);
-                });
     }
 
     private SharedPreferences getPrefs() {
