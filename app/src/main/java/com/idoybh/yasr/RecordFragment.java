@@ -1,8 +1,10 @@
 package com.idoybh.yasr;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioDeviceInfo;
@@ -59,6 +61,8 @@ public class RecordFragment extends Fragment {
     private String mTotalDurationStr;
     private RecordingService mService;
     private boolean isStarted = false;
+    private Timer mNoiseTimer;
+    private TimerTask mNoiseTimerTask;
 
     @Override
     public View onCreateView(
@@ -82,6 +86,66 @@ public class RecordFragment extends Fragment {
                 binding.channelToggle
         );
 
+        updateAudioDevices();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(AudioManager.ACTION_HEADSET_PLUG);
+        requireContext().registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final int mic = intent.getIntExtra("microphone", 0);
+                if (mic != 1) return;
+                updateAudioDevices();
+            }
+        }, filter);
+
+        // settings up the rest of the views + listeners
+        binding.deviceMenu.setOnItemClickListener((parent, view1, position, id) -> {
+            mSelectedDeviceIndex = position;
+            updateInfoText();
+            registerToMicAmp();
+        });
+
+        binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) ->
+                setLimitMode(checkedId == binding.limitBtnTime.getId() && isChecked
+                        ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE));
+        setLimitMode(binding.limitToggle.getCheckedButtonId() == binding.limitBtnTime.getId()
+                ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
+
+        Calendar now = Calendar.getInstance();
+        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d%02d",
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DAY_OF_MONTH),
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE),
+                now.get(Calendar.SECOND));
+        binding.recordingNameInputText.setText(mDefaultName);
+        binding.recordButton.setOnClickListener(this::onRecordingClicked);
+        binding.saveButton.setOnClickListener(this::onSaveClicked);
+        binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
+
+        // loading shared prefs / defaults
+        final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
+        int outID = binding.outputBtnMP4.getId();
+        if (outPref.equals(RecordingService.OGG_EXT))
+            outID = binding.outputBtnOGG.getId();
+        binding.outputToggle.check(outID);
+        final int qualityPref = getPrefs().getInt(PREF_OUTPUT_QUALITY, 0);
+        binding.qualityToggle.check(binding.qualityToggle.getChildAt(qualityPref).getId());
+        final int channelsPref = getPrefs().getInt(PREF_CHANNELS, 2);
+        binding.channelToggle.check(channelsPref == 2
+                ? binding.channelBtn2.getId() : binding.channelBtn1.getId());
+        final int limitModePref = getPrefs().getInt(PREF_LIMIT_MODE, LIMIT_MODE_SIZE);
+        binding.limitToggle.check(limitModePref == LIMIT_MODE_TIME
+                ? binding.limitBtnTime.getId() : binding.limitBtnSize.getId());
+        final int limitValPref = getPrefs().getInt(PREF_LIMIT_VALUE, 0);
+        binding.limitSlider.setValue(limitValPref);
+
+        updateInfoText();
+        registerToMicAmp();
+    }
+
+    private void updateAudioDevices() {
         // polling & filtering input audio devices
         AudioManager am = (AudioManager) requireContext().getSystemService(Context.AUDIO_SERVICE);
         AudioDeviceInfo[] allDevices = am.getDevices(AudioManager.GET_DEVICES_INPUTS);
@@ -137,52 +201,6 @@ public class RecordFragment extends Fragment {
             binding.deviceMenu.setListSelection(mSelectedDeviceIndex);
             binding.deviceMenu.setText(names[mSelectedDeviceIndex], false);
         }
-
-        // settings up the rest of the views + listeners
-        binding.deviceMenu.setOnItemClickListener((parent, view1, position, id) -> {
-            mSelectedDeviceIndex = position;
-            updateInfoText();
-            registerToMicAmp();
-        });
-
-        binding.limitToggle.addOnButtonCheckedListener((group, checkedId, isChecked) ->
-                setLimitMode(checkedId == binding.limitBtnTime.getId() && isChecked
-                        ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE));
-        setLimitMode(binding.limitToggle.getCheckedButtonId() == binding.limitBtnTime.getId()
-                ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
-
-        Calendar now = Calendar.getInstance();
-        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d%02d",
-                now.get(Calendar.YEAR),
-                now.get(Calendar.MONTH),
-                now.get(Calendar.DAY_OF_MONTH),
-                now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE),
-                now.get(Calendar.SECOND));
-        binding.recordingNameInputText.setText(mDefaultName);
-        binding.recordButton.setOnClickListener(this::onRecordingClicked);
-        binding.saveButton.setOnClickListener(this::onSaveClicked);
-        binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
-
-        // loading shared prefs / defaults
-        final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
-        int outID = binding.outputBtnMP4.getId();
-        if (outPref.equals(RecordingService.OGG_EXT))
-            outID = binding.outputBtnOGG.getId();
-        binding.outputToggle.check(outID);
-        final int qualityPref = getPrefs().getInt(PREF_OUTPUT_QUALITY, 0);
-        binding.qualityToggle.check(binding.qualityToggle.getChildAt(qualityPref).getId());
-        final int channelsPref = getPrefs().getInt(PREF_CHANNELS, 2);
-        binding.channelToggle.check(channelsPref == 2
-                ? binding.channelBtn2.getId() : binding.channelBtn1.getId());
-        final int limitModePref = getPrefs().getInt(PREF_LIMIT_MODE, LIMIT_MODE_SIZE);
-        binding.limitToggle.check(limitModePref == LIMIT_MODE_TIME
-                ? binding.limitBtnTime.getId() : binding.limitBtnSize.getId());
-        final int limitValPref = getPrefs().getInt(PREF_LIMIT_VALUE, 0);
-        binding.limitSlider.setValue(limitValPref);
-
-        updateInfoText();
-        registerToMicAmp();
     }
 
     private static boolean isAudioDeviceBetter(AudioDeviceInfo device1, AudioDeviceInfo device2) {
@@ -343,39 +361,6 @@ public class RecordFragment extends Fragment {
         }
     };
 
-    private final StatusListener mStatusListener = new StatusListener();
-    private class StatusListener implements RecordingService.StatusListener {
-        @Override
-        public void onStatusChanged(int status, int extra) {
-            switch (status) {
-                case RecordingService.Status.FAILED:
-                case RecordingService.Status.MAX_REACHED:
-                case RecordingService.Status.IDLE:
-                    binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
-                    binding.progressBar.setVisibility(View.INVISIBLE);
-                    binding.timeText.setText("");
-                    showSaveButton(false);
-                    enableOptionViews(true);
-                    registerToDuration(false);
-                    break;
-                case RecordingService.Status.STARTED:
-                    binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
-                    binding.progressBar.setVisibility(View.VISIBLE);
-                    showSaveButton(true);
-                    enableOptionViews(false);
-                    registerToDuration(true);
-                    break;
-                case RecordingService.Status.PAUSED:
-                    binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
-                    binding.progressBar.setVisibility(View.INVISIBLE);
-                    showSaveButton(true);
-                    enableOptionViews(false);
-                    registerToDuration(false);
-                    break;
-            }
-        }
-    }
-
     private void showSaveButton(final boolean show) {
         binding.saveButton.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
         binding.saveButton.setClickable(show);
@@ -427,8 +412,26 @@ public class RecordFragment extends Fragment {
         binding.infoTxt.setText(String.format(getString(R.string.info_txt), mSampleRate / 1000f, mEncodeRate));
     }
 
-    private Timer mNoiseTimer;
-    private TimerTask mNoiseTimerTask;
+    private void registerToDuration(final boolean register) {
+        if (register && mDurationTimer == null && mDurationTimerTask == null) {
+            mDurationTimer = new Timer();
+            mDurationTimerTask = new DurationTimerTask();
+            mDurationTimer.scheduleAtFixedRate(mDurationTimerTask, 0, 250);
+            return;
+        }
+        if (mDurationTimer == null || mDurationTimerTask == null)
+            return;
+        mDurationTimer.cancel();
+        mDurationTimer = null;
+        mDurationTimerTask.cancel();
+        mDurationTimerTask = null;
+    }
+
+    private SharedPreferences getPrefs() {
+        if (mSharedPrefs != null) return mSharedPrefs;
+        mSharedPrefs = requireContext().getSharedPreferences(SHARED_PREF_FILE, Context.MODE_PRIVATE);
+        return mSharedPrefs;
+    }
 
     private synchronized void registerToMicAmp() {
         if (mRecorder != null) {
@@ -438,7 +441,7 @@ public class RecordFragment extends Fragment {
             if (mNoiseTimer != null) mNoiseTimer.cancel();
             if (mNoiseTimerTask != null) mNoiseTimerTask.cancel();
             final File tmpFile = new File(requireContext().getCacheDir()
-                    + File.separator + "tmp.mp3");
+                    + File.separator + "tmp.m4a");
             if (tmpFile.exists()) tmpFile.delete();
         }
         mNoiseTimer = new Timer();
@@ -475,6 +478,39 @@ public class RecordFragment extends Fragment {
         mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
     }
 
+    private final StatusListener mStatusListener = new StatusListener();
+    private class StatusListener implements RecordingService.StatusListener {
+        @Override
+        public void onStatusChanged(int status, int extra) {
+            switch (status) {
+                case RecordingService.Status.FAILED:
+                case RecordingService.Status.MAX_REACHED:
+                case RecordingService.Status.IDLE:
+                    binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
+                    binding.progressBar.setVisibility(View.INVISIBLE);
+                    binding.timeText.setText("");
+                    showSaveButton(false);
+                    enableOptionViews(true);
+                    registerToDuration(false);
+                    break;
+                case RecordingService.Status.STARTED:
+                    binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
+                    binding.progressBar.setVisibility(View.VISIBLE);
+                    showSaveButton(true);
+                    enableOptionViews(false);
+                    registerToDuration(true);
+                    break;
+                case RecordingService.Status.PAUSED:
+                    binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
+                    binding.progressBar.setVisibility(View.INVISIBLE);
+                    showSaveButton(true);
+                    enableOptionViews(false);
+                    registerToDuration(false);
+                    break;
+            }
+        }
+    }
+
     private Timer mDurationTimer;
     private TimerTask mDurationTimerTask;
     private class DurationTimerTask extends TimerTask {
@@ -508,25 +544,4 @@ public class RecordFragment extends Fragment {
                     binding.timeText.setText(res));
         }
     };
-
-    private void registerToDuration(final boolean register) {
-        if (register && mDurationTimer == null && mDurationTimerTask == null) {
-            mDurationTimer = new Timer();
-            mDurationTimerTask = new DurationTimerTask();
-            mDurationTimer.scheduleAtFixedRate(mDurationTimerTask, 0, 250);
-            return;
-        }
-        if (mDurationTimer == null || mDurationTimerTask == null)
-            return;
-        mDurationTimer.cancel();
-        mDurationTimer = null;
-        mDurationTimerTask.cancel();
-        mDurationTimerTask = null;
-    }
-
-    private SharedPreferences getPrefs() {
-        if (mSharedPrefs != null) return mSharedPrefs;
-        mSharedPrefs = requireContext().getSharedPreferences(SHARED_PREF_FILE, Context.MODE_PRIVATE);
-        return mSharedPrefs;
-    }
 }

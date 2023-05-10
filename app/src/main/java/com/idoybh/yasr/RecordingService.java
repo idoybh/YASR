@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public class RecordingService extends Service {
     public static final String EXTRA_OPTS = "extra_opts";
-    public static final String MPEG_4_EXT = "mp3";
+    public static final String MPEG_4_EXT = "m4a";
     public static final String OGG_EXT = "ogg";
     private static final String NOTIFICATION_CHANNEL = "Recording Service";
     private static final int NOTIFICATION_ID = 0x01;

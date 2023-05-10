@@ -13,8 +13,7 @@
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
     <string name="service_notification_text">Audio recording in progress</string>
-    <string name="out_selector_flac">flac</string>
-    <string name="out_selector_mp3">mp3</string>
+    <string name="out_selector_m4a">m4a</string>
     <string name="out_selector_ogg">ogg</string>
     <string name="hd">HD</string>
     <string name="sd">SD</string>
