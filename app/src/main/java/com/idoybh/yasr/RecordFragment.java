@@ -212,11 +212,19 @@ public class RecordFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        mNoiseTimer.cancel();
-        mNoiseTimer.purge();
-        super.onDestroyView();
+        if (mNoiseTimer != null) {
+            mNoiseTimer.cancel();
+            mNoiseTimer.purge();
+        }
+        if (mNoiseTimerTask != null) {
+            mNoiseTimerTask.cancel();
+        }
+        if (mRecorder != null) {
+            mRecorder.stop();
+        }
         mRecorder = null;
         binding = null;
+        super.onDestroyView();
     }
 
     private void onRecordingClicked(View view) {
@@ -419,30 +427,35 @@ public class RecordFragment extends Fragment {
         binding.infoTxt.setText(String.format(getString(R.string.info_txt), mSampleRate / 1000f, mEncodeRate));
     }
 
-    private final Timer mNoiseTimer = new Timer();
-    private final TimerTask mNoiseTimerTask = new TimerTask() {
-        @Override
-        public void run() {
-            if (mRecorder == null) {
-                return;
-            }
-            final int noise = mRecorder.getMaxAmplitude();
-            binding.audioBar.getHandler().post(() -> {
-                if (binding != null) binding.audioBar.setProgress(noise, true);
-            });
-        }
-    };
+    private Timer mNoiseTimer;
+    private TimerTask mNoiseTimerTask;
 
     private synchronized void registerToMicAmp() {
         if (mRecorder != null) {
             mRecorder.stop();
             mRecorder.release();
             mRecorder = null;
-            mNoiseTimer.cancel();
+            if (mNoiseTimer != null) mNoiseTimer.cancel();
+            if (mNoiseTimerTask != null) mNoiseTimerTask.cancel();
             final File tmpFile = new File(requireContext().getCacheDir()
                     + File.separator + "tmp.mp3");
             if (tmpFile.exists()) tmpFile.delete();
         }
+        mNoiseTimer = new Timer();
+        mNoiseTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (mRecorder == null) {
+                    return;
+                }
+                try {
+                    final int noise = mRecorder.getMaxAmplitude();
+                    binding.audioBar.getHandler().post(() -> {
+                        if (binding != null) binding.audioBar.setProgress(noise, true);
+                    });
+                } catch (Exception ignored) { }
+            }
+        };
         final AudioDeviceInfo info = mAudioDevices.get(mSelectedDeviceIndex);
         mRecorder = new MediaRecorder(requireContext());
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
