@@ -60,7 +60,9 @@ public class RecordFragment extends Fragment {
     private String mDefaultName;
     private String mTotalDurationStr;
     private RecordingService mService;
+    private RawRecordingService mRawService;
     private boolean isStarted = false;
+    private boolean isRawStarted = false;
     private Timer mNoiseTimer;
     private TimerTask mNoiseTimerTask;
 
@@ -129,6 +131,8 @@ public class RecordFragment extends Fragment {
         int outID = binding.outputBtnMP4.getId();
         if (outPref.equals(RecordingService.OGG_EXT))
             outID = binding.outputBtnOGG.getId();
+        else if (outPref.equals(RecordingService.WAV_EXT))
+            outID = binding.outputBtnWAV.getId();
         binding.outputToggle.check(outID);
         final int qualityPref = getPrefs().getInt(PREF_OUTPUT_QUALITY, 0);
         binding.qualityToggle.check(binding.qualityToggle.getChildAt(qualityPref).getId());
@@ -246,18 +250,22 @@ public class RecordFragment extends Fragment {
     }
 
     private void onRecordingClicked(View view) {
-        if (!isStarted) {
-            Intent intent = new Intent(requireContext(), RecordingService.class);
+        final int checkedOutputID = binding.outputToggle.getCheckedButtonId();
+        if (!isStarted && !isRawStarted) {
+            Intent intent = new Intent(requireContext(), checkedOutputID != R.id.outputBtnWAV
+                    ? RecordingService.class : RawRecordingService.class);
             requireContext().startForegroundService(intent); // run until we stop it
             requireContext().bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
             // save current settings as prefs for the next time we run
             SharedPreferences.Editor editor = getPrefs().edit();
             editor.putString(PREF_INPUT_DEVICE, binding.deviceMenu.getText().toString());
-            if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnMP4)
+            if (checkedOutputID == R.id.outputBtnMP4)
                 editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
-            else if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnOGG)
+            else if (checkedOutputID == R.id.outputBtnOGG)
                 editor.putString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
+            else if (checkedOutputID == R.id.outputBtnWAV)
+                editor.putString(PREF_OUTPUT_EXT, RecordingService.WAV_EXT);
             for (int i = 0; i < binding.qualityToggle.getChildCount(); i++) {
                 final int id = binding.qualityToggle.getChildAt(i).getId();
                 if (id == binding.qualityToggle.getCheckedButtonId()) {
@@ -272,15 +280,21 @@ public class RecordFragment extends Fragment {
             editor.apply();
             return;
         }
-        mService.pauseResumeRecording();
+        if (mService != null) {
+            mService.pauseResumeRecording();
+            return;
+        }
+        mRawService.pauseResumeRecording();
     }
 
     private void onSaveClicked(View view) {
-        Intent intent = new Intent(requireContext(), RecordingService.class);
+        Intent intent = new Intent(requireContext(),
+                isStarted ? RecordingService.class : RawRecordingService.class);
         requireContext().unbindService(connection);
         requireContext().stopService(intent);
         registerToDuration(false);
         isStarted = false;
+        isRawStarted = false;
         binding.timeText.setText("");
         binding.progressBar.setVisibility(View.INVISIBLE);
     }
@@ -325,9 +339,25 @@ public class RecordFragment extends Fragment {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             // We've bound to LocalService, cast the IBinder and get LocalService instance.
-            RecordingService.LocalBinder binder = (RecordingService.LocalBinder) service;
-            mService = binder.getService();
-            isStarted = true;
+            if (className.getClassName().equals(RawRecordingService.class.getName())) {
+                RawRecordingService.LocalBinder binder = (RawRecordingService.LocalBinder) service;
+                if (mService != null) {
+                    mService.stopSelf();
+                    mService = null;
+                    isStarted = false;
+                }
+                mRawService = binder.getService();
+                isRawStarted = true;
+            } else {
+                if (mRawService != null) {
+                    mRawService.stopSelf();
+                    mRawService = null;
+                    isRawStarted = false;
+                }
+                RecordingService.LocalBinder binder = (RecordingService.LocalBinder) service;
+                mService = binder.getService();
+                isStarted = true;
+            }
             final AudioDeviceInfo info = mAudioDevices.get(mSelectedDeviceIndex);
             updateInfoText(info);
             final int channels = binding.channelToggle.getCheckedButtonId() ==
@@ -340,14 +370,23 @@ public class RecordFragment extends Fragment {
                 limit[1] = limitValue;
             }
             String ext = RecordingService.MPEG_4_EXT;
-            if (binding.outputToggle.getCheckedButtonId() == R.id.outputBtnOGG)
+            final int checkedOutputID = binding.outputToggle.getCheckedButtonId();
+            if (checkedOutputID == R.id.outputBtnOGG)
                 ext = RecordingService.OGG_EXT;
+            else if (checkedOutputID == R.id.outputBtnWAV)
+                ext = RecordingService.WAV_EXT;
             final Editable editText = binding.recordingNameInputText.getText();
             final String fileName = (editText == null || editText.toString().isEmpty()
                     ? mDefaultName : editText.toString()) + "." + ext;
             mCurrentRecordingFile = new File(requireContext().getFilesDir(), fileName);
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
                     mCurrentRecordingFile, info, mSampleRate, mEncodeRate, channels, limit);
+            if (mRawService != null) {
+                mRawService.setOptions(opts);
+                mRawService.addListener(mStatusListener);
+                mRawService.startRecording();
+                return;
+            }
             mService.setOptions(opts);
             mService.addListener(mStatusListener);
             mService.startRecording();
@@ -355,9 +394,15 @@ public class RecordFragment extends Fragment {
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            mService.removeListener(mStatusListener);
-            mService = null;
-            isStarted = false;
+            if (mService != null) {
+                mService.removeListener(mStatusListener);
+                mService = null;
+                isStarted = false;
+                return;
+            }
+            mRawService.removeListener(mStatusListener);
+            mRawService = null;
+            isRawStarted = false;
         }
     };
 
@@ -516,10 +561,12 @@ public class RecordFragment extends Fragment {
     private class DurationTimerTask extends TimerTask {
         @Override
         public void run() {
-            if (!isStarted || mService == null) {
-                return;
-            }
-            final long sec = mService.getDuration() / 1000;
+            long sec = -1;
+            if (isStarted && mService != null)
+                sec = mService.getDuration() / 1000;
+            else if (isRawStarted && mRawService != null)
+                sec = mRawService.getDuration() / 1000;
+            if (sec == -1) return;
             String text = "";
             if (sec > 3600 /* 1 hour */) {
                 text += String.format(Locale.ENGLISH, "%02d:%02d", sec / 3600, sec % 3600);
@@ -532,8 +579,9 @@ public class RecordFragment extends Fragment {
                 if (totalStr.contains("s"))
                     totalStr = "00:" + totalStr.replace("s", "");
                 text += "/" + totalStr;
+                final long finalSec = sec;
                 binding.progressBar.getHandler().post(() ->
-                        binding.progressBar.setProgress((int) sec, true));
+                        binding.progressBar.setProgress((int) finalSec, true));
             } else if (mLimitMode == LIMIT_MODE_SIZE) {
                 int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
                 binding.progressBar.getHandler().post(() ->

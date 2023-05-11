@@ -12,7 +12,6 @@ import android.os.Binder;
 import android.os.IBinder;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -26,6 +25,7 @@ public class RecordingService extends Service {
     public static final String EXTRA_OPTS = "extra_opts";
     public static final String MPEG_4_EXT = "m4a";
     public static final String OGG_EXT = "ogg";
+    public static final String WAV_EXT = "wav";
     private static final String NOTIFICATION_CHANNEL = "Recording Service";
     private static final int NOTIFICATION_ID = 0x01;
     private static final Map<String, Integer> EXT_TO_OUT = new HashMap<>(Map.of(
@@ -37,12 +37,12 @@ public class RecordingService extends Service {
             MediaRecorder.OutputFormat.OGG, MediaRecorder.AudioEncoder.OPUS
     ));
     private final IBinder binder = new LocalBinder();
-    private RecordOptions mOptions;
+    protected RecordOptions mOptions;
     private MediaRecorder mRecorder;
-    private int mStatus = Status.IDLE;
+    protected int mStatus = Status.IDLE;
     private int mStatusExtra = 0;
-    private Calendar mStartTime;
-    private long mDuration = 0;
+    protected Calendar mStartTime;
+    protected long mDuration = 0;
 
     private final List<StatusListener> mListeners = new ArrayList<>();
 
@@ -141,17 +141,27 @@ public class RecordingService extends Service {
     }
 
     public synchronized void pauseResumeRecording() {
-        if (mRecorder == null) return;
         if (mStatus == Status.PAUSED) {
             mStartTime = Calendar.getInstance();
-            mRecorder.resume();
+            if (!suspendRecord(false)) return;
             updateListeners(Status.STARTED);
         } else if (mStatus == Status.STARTED) {
             mDuration += Calendar.getInstance().getTimeInMillis() - mStartTime.getTimeInMillis();
             mStartTime = null;
-            mRecorder.pause();
+            if (!suspendRecord(true)) return;
             updateListeners(Status.PAUSED);
         }
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    protected synchronized boolean suspendRecord(boolean suspend) {
+        if (mRecorder == null) return false;
+        if (suspend) {
+            mRecorder.pause();
+            return true;
+        }
+        mRecorder.resume();
+        return true;
     }
 
     /**
@@ -187,7 +197,7 @@ public class RecordingService extends Service {
         updateListeners(mStatus, mStatusExtra);
     }
 
-    private synchronized void updateListeners(final int status) {
+    protected synchronized void updateListeners(final int status) {
         updateListeners(status, 0);
     }
 

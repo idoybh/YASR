@@ -15,6 +15,7 @@
     <string name="service_notification_text">Audio recording in progress</string>
     <string name="out_selector_m4a">m4a</string>
     <string name="out_selector_ogg">ogg</string>
+    <string name="out_selector_wav">wav</string>
     <string name="hd">HD</string>
     <string name="sd">SD</string>
     <string name="ld">LD</string>

@@ -119,6 +119,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/out_selector_m4a" />
+
+        <Button
+            android:id="@+id/outputBtnWAV"
+            style="@style/Widget.App.Button.OutlinedButton.Selector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/out_selector_wav" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <TextView
