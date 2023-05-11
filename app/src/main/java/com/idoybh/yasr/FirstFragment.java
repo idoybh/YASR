@@ -8,8 +8,6 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.view.LayoutInflater;
@@ -43,6 +41,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class FirstFragment extends Fragment {
     private static final String MEDIA_PLAYER_THREAD_NAME = "MediaPlayer tracker";
@@ -55,7 +55,6 @@ public class FirstFragment extends Fragment {
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
     private volatile boolean mWaitingForResults = false;
-    private HandlerThread mProgressHT;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -233,8 +232,11 @@ public class FirstFragment extends Fragment {
             }
 
             public void stopPlaying() {
-                if (mProgressHT != null && mProgressHT.isAlive())
-                    mProgressHT.quit();
+                if (mAnimateSliderTimer != null) {
+                    mAnimateSliderTimer.cancel();
+                    mAnimateSliderTimer.purge();
+                    mAnimateSliderTimer = null;
+                }
                 mPlayingRecording = null;
                 mPlayingHolder = null;
                 mMediaPlayer.stop();
@@ -391,38 +393,16 @@ public class FirstFragment extends Fragment {
                 });
                 holder.playButton.setImageResource(R.drawable.baseline_pause_24);
                 mMediaPlayer.start();
-                if (mProgressHT != null && mProgressHT.isAlive())
-                    mProgressHT.quit();
-                mProgressHT = new HandlerThread(MEDIA_PLAYER_THREAD_NAME);
-                mProgressHT.start();
-                Handler handler = new Handler(mProgressHT.getLooper());
-                requireActivity().runOnUiThread(() -> handler.post(new Runnable() {
-                    private static final int DELAY_MS = 50;
-                    @Override
-                    public void run() {
-                        final boolean plays = mPlayingRecording != null &&
-                                mPlayingRecording == file && mMediaPlayer != null;
-                        try {
-                            if (plays && mMediaPlayer.isPlaying()) {
-                                int pos = mMediaPlayer.getCurrentPosition();
-                                animateSliderValue(holder.playProgress, pos);
-                                pos /= 1000;
-                                String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                                        pos / 60, pos % 60, finalDurationInt / 60, finalDurationInt % 60);
-                                holder.timeTxt.setText(timeText);
-                            }
-                            if (plays) {
-                                // while this file still plays
-                                handler.postDelayed(this, DELAY_MS);
-                                return;
-                            }
-                            mProgressHT.quit();
-                        } catch (Exception e) {
-                            if (plays) handler.postDelayed(this, DELAY_MS);
-                            else mProgressHT.quit();
-                        }
-                    }
-                }));
+                if (mAnimateSliderTimer != null) {
+                    mAnimateSliderTimer.cancel();
+                    mAnimateSliderTimer.purge();
+                    mAnimateSliderTimer = null;
+                }
+                mAnimateSliderTimer = new Timer();
+                mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
+                        holder.timeTxt, finalDurationInt);
+                mAnimateSliderTimer.scheduleAtFixedRate(mAnimateSliderTask,
+                        0, AnimateSliderTask.DELAY_MS);
             });
             holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
                 if (!fromUser) return;
@@ -450,6 +430,49 @@ public class FirstFragment extends Fragment {
                 }
             });
         }
+
+        private Timer mAnimateSliderTimer;
+        private AnimateSliderTask mAnimateSliderTask;
+        private class AnimateSliderTask extends TimerTask {
+            public static final int DELAY_MS = 50;
+            private final File file;
+            private final Slider slider;
+            private final TextView text;
+            private final int duration;
+
+            public AnimateSliderTask(File file, Slider slider, TextView text, int duration) {
+                this.file = file;
+                this.slider = slider;
+                this.text = text;
+                this.duration = duration;
+            }
+
+            @Override
+            public void run() {
+                requireActivity().runOnUiThread(() -> {
+                    final boolean plays = mPlayingRecording != null &&
+                            mPlayingRecording == file && mMediaPlayer != null;
+                    try {
+                        if (plays && mMediaPlayer.isPlaying()) {
+                            int pos = mMediaPlayer.getCurrentPosition();
+                            animateSliderValue(slider, pos);
+                            pos /= 1000;
+                            String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                                    pos / 60, pos % 60, duration / 60, duration % 60);
+                            text.setText(timeText);
+                        }
+                        if (plays) {
+                            // while this file still plays
+                            return;
+                        }
+                        mAnimateSliderTimer.cancel();
+                        mAnimateSliderTimer.purge();
+                        mAnimateSliderTimer = null;
+                    } catch (Exception ignored) {
+                    }
+                });
+            }
+        };
 
         private static void animateSliderValue(Slider slider, float value) {
             final ValueAnimator animator = ValueAnimator.ofFloat(slider.getValue(), value);
