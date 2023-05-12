@@ -119,6 +119,7 @@ public class RecordFragment extends Fragment {
         refreshDefaultName();
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
+        binding.outputToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
 
@@ -487,7 +488,11 @@ public class RecordFragment extends Fragment {
             mSampleRate = sRates[0];
             mEncodeRate = eRates.get(0);
         }
-        binding.infoTxt.setText(String.format(getString(R.string.info_txt), mSampleRate / 1000f, mEncodeRate));
+        final int selectedFormat = binding.outputToggle.getCheckedButtonId();
+        final String encoderTxt = selectedFormat == binding.outputBtnWAV.getId() ?
+                getString(R.string.info_txt_lossless) : getString(R.string.info_txt_lossy);
+        binding.infoTxt.setText(String.format(getString(R.string.info_txt),
+                mSampleRate / 1000f, mEncodeRate, encoderTxt));
     }
 
     private void registerToDuration(final boolean register) {
