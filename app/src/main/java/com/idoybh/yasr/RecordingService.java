@@ -1,11 +1,14 @@
 package com.idoybh.yasr;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioDeviceInfo;
 import android.media.MediaRecorder;
 import android.os.Binder;
@@ -22,7 +25,7 @@ import java.util.Map;
  * Main application service - manages all recording procedure
  */
 public class RecordingService extends Service {
-    public static final String EXTRA_OPTS = "extra_opts";
+    public static final String PREF_RECORDING = "service_recording";
     public static final String MPEG_4_EXT = "m4a";
     public static final String OGG_EXT = "ogg";
     public static final String WAV_EXT = "wav";
@@ -39,6 +42,7 @@ public class RecordingService extends Service {
     private final IBinder binder = new LocalBinder();
     protected RecordOptions mOptions;
     private MediaRecorder mRecorder;
+    private SharedPreferences mSharedPreferences;
     protected int mStatus = Status.IDLE;
     private int mStatusExtra = 0;
     protected Calendar mStartTime;
@@ -61,14 +65,20 @@ public class RecordingService extends Service {
         channel.setSound(null, null);
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         nm.createNotificationChannel(channel);
+        PendingIntent contentPI = PendingIntent.getActivity(this, 0,
+                new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, NOTIFICATION_CHANNEL)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.service_notification_text))
                 .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(contentPI)
+                .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
+                .setShowWhen(true)
                 .build();
         startForeground(NOTIFICATION_ID, notification);
+        updateListeners(mStatus);
         return START_STICKY;
     }
 
@@ -81,6 +91,7 @@ public class RecordingService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        updateListeners(mStatus);
         return binder;
     }
 
@@ -182,6 +193,7 @@ public class RecordingService extends Service {
     }
 
     public synchronized void addListener(StatusListener listener) {
+        if (mListeners.contains(listener)) return;
         mListeners.add(listener);
     }
 

@@ -18,8 +18,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.idoybh.yasr.databinding.FragmentRecordBinding;
@@ -113,18 +116,11 @@ public class RecordFragment extends Fragment {
         setLimitMode(binding.limitToggle.getCheckedButtonId() == binding.limitBtnTime.getId()
                 ? LIMIT_MODE_TIME : LIMIT_MODE_SIZE);
 
-        Calendar now = Calendar.getInstance();
-        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d%02d",
-                now.get(Calendar.YEAR),
-                now.get(Calendar.MONTH),
-                now.get(Calendar.DAY_OF_MONTH),
-                now.get(Calendar.HOUR_OF_DAY),
-                now.get(Calendar.MINUTE),
-                now.get(Calendar.SECOND));
-        binding.recordingNameInputText.setText(mDefaultName);
+        refreshDefaultName();
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
+        requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
 
         // loading shared prefs / defaults
         final String outPref = getPrefs().getString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
@@ -147,6 +143,25 @@ public class RecordFragment extends Fragment {
 
         updateInfoText();
         registerToMicAmp();
+    }
+
+    private final OnBackPressedCallback onBackCallback = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            // do nothing when enabled
+        }
+    };
+
+    private void refreshDefaultName() {
+        Calendar now = Calendar.getInstance();
+        mDefaultName = String.format(Locale.ENGLISH,"%04d-%02d-%02d_%02d%02d%02d",
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH) + 1,
+                now.get(Calendar.DAY_OF_MONTH),
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE),
+                now.get(Calendar.SECOND));
+        binding.recordingNameInputText.setText(mDefaultName);
     }
 
     private void updateAudioDevices() {
@@ -233,18 +248,33 @@ public class RecordFragment extends Fragment {
     }
 
     @Override
-    public void onDestroyView() {
+    public void onStop() {
+        registerToDuration(false);
+        setBackEnabled(true);
         if (mNoiseTimer != null) {
             mNoiseTimer.cancel();
             mNoiseTimer.purge();
         }
-        if (mNoiseTimerTask != null) {
+        if (mNoiseTimerTask != null)
             mNoiseTimerTask.cancel();
-        }
-        if (mRecorder != null) {
+        if (mRecorder != null)
             mRecorder.stop();
-        }
         mRecorder = null;
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (mRawService != null && isRawStarted || mService != null && isStarted) {
+            if (mRawService != null) mRawService.removeListener(mStatusListener);
+            if (mService != null) mService.removeListener(mStatusListener);
+            if (isStarted || isRawStarted) {
+                Intent intent = new Intent(requireContext(),
+                        isStarted ? RecordingService.class : RawRecordingService.class);
+                requireContext().unbindService(connection);
+                requireContext().stopService(intent);
+            }
+        }
         binding = null;
         super.onDestroyView();
     }
@@ -288,10 +318,12 @@ public class RecordFragment extends Fragment {
     }
 
     private void onSaveClicked(View view) {
-        Intent intent = new Intent(requireContext(),
-                isStarted ? RecordingService.class : RawRecordingService.class);
-        requireContext().unbindService(connection);
-        requireContext().stopService(intent);
+        if (isStarted || isRawStarted) {
+            Intent intent = new Intent(requireContext(),
+                    isStarted ? RecordingService.class : RawRecordingService.class);
+            requireContext().unbindService(connection);
+            requireContext().stopService(intent);
+        }
         registerToDuration(false);
         isStarted = false;
         isRawStarted = false;
@@ -420,6 +452,7 @@ public class RecordFragment extends Fragment {
     }
 
     private void updateInfoText(final AudioDeviceInfo info) {
+        if (binding == null) return;
         final int[] encodings = info.getEncodings();
         final List<Integer> eRates = new ArrayList<>();
         if (encodings.length == 0) {
@@ -466,7 +499,9 @@ public class RecordFragment extends Fragment {
         }
         if (mDurationTimer == null || mDurationTimerTask == null)
             return;
+        updateDurationText();
         mDurationTimer.cancel();
+        mDurationTimer.purge();
         mDurationTimer = null;
         mDurationTimerTask.cancel();
         mDurationTimerTask = null;
@@ -517,10 +552,19 @@ public class RecordFragment extends Fragment {
             mRecorder.start();
         } catch (IllegalStateException | IOException e) {
             e.printStackTrace();
+            Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
+            for (View v : mOptionViews) v.setEnabled(false);
+            binding.recordButton.setEnabled(false);
+            return;
         }
         binding.audioBar.setMin(mRecorder.getMaxAmplitude() /* 0 */);
         binding.audioBar.setMax(10000); // consider making dynamic again
         mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
+    }
+
+    private void setBackEnabled(final boolean enabled) {
+        onBackCallback.setEnabled(!enabled); // callback should be enabled when back is disabled
+        ((AppCompatActivity) requireActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(enabled);
     }
 
     private final StatusListener mStatusListener = new StatusListener();
@@ -537,6 +581,8 @@ public class RecordFragment extends Fragment {
                     showSaveButton(false);
                     enableOptionViews(true);
                     registerToDuration(false);
+                    refreshDefaultName();
+                    setBackEnabled(true);
                     break;
                 case RecordingService.Status.STARTED:
                     binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
@@ -544,13 +590,15 @@ public class RecordFragment extends Fragment {
                     showSaveButton(true);
                     enableOptionViews(false);
                     registerToDuration(true);
+                    setBackEnabled(false);
                     break;
                 case RecordingService.Status.PAUSED:
                     binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
                     binding.progressBar.setVisibility(View.INVISIBLE);
-                    showSaveButton(true);
+                    showSaveButton(false);
                     enableOptionViews(false);
                     registerToDuration(false);
+                    setBackEnabled(false);
                     break;
             }
         }
@@ -561,35 +609,41 @@ public class RecordFragment extends Fragment {
     private class DurationTimerTask extends TimerTask {
         @Override
         public void run() {
-            long sec = -1;
-            if (isStarted && mService != null)
-                sec = mService.getDuration() / 1000;
-            else if (isRawStarted && mRawService != null)
-                sec = mRawService.getDuration() / 1000;
-            if (sec == -1) return;
-            String text = "";
-            if (sec > 3600 /* 1 hour */) {
-                text += String.format(Locale.ENGLISH, "%02d:%02d", sec / 3600, sec % 3600);
-            } else {
-                text += String.format(Locale.ENGLISH, "%02d", sec / 60);
-            }
-            text += String.format(Locale.ENGLISH, ":%02d", sec % 60);
-            if (mTotalDurationStr != null) {
-                String totalStr = mTotalDurationStr;
-                if (totalStr.contains("s"))
-                    totalStr = "00:" + totalStr.replace("s", "");
-                text += "/" + totalStr;
-                final long finalSec = sec;
-                binding.progressBar.getHandler().post(() ->
-                        binding.progressBar.setProgress((int) finalSec, true));
-            } else if (mLimitMode == LIMIT_MODE_SIZE) {
-                int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
-                binding.progressBar.getHandler().post(() ->
-                        binding.progressBar.setProgress(size, true));
-            }
-            final String res = text;
-            binding.timeText.getHandler().post(() ->
-                    binding.timeText.setText(res));
+            updateDurationText();
         }
     };
+
+    private void updateDurationText() {
+        if (binding == null) return;
+        long sec = -1;
+        if (isStarted && mService != null)
+            sec = mService.getDuration() / 1000;
+        else if (isRawStarted && mRawService != null)
+            sec = mRawService.getDuration() / 1000;
+        if (sec == -1) return;
+        String text = "";
+        if (sec > 3600 /* 1 hour */) {
+            text += String.format(Locale.ENGLISH, "%02d:%02d", sec / 3600, sec % 3600);
+        } else {
+            text += String.format(Locale.ENGLISH, "%02d", sec / 60);
+        }
+        text += String.format(Locale.ENGLISH, ":%02d", sec % 60);
+        if (mTotalDurationStr != null) {
+            String totalStr = mTotalDurationStr;
+            if (totalStr.contains("s"))
+                totalStr = "00:" + String.format(Locale.ENGLISH,
+                        "%02d", Integer.valueOf(totalStr.replace("s", "")));
+            text += "/" + totalStr;
+            final int finalSec = (int) sec;
+            requireActivity().runOnUiThread(() ->
+                    binding.progressBar.setProgress((int) finalSec, true));
+        } else if (mLimitMode == LIMIT_MODE_SIZE) {
+            int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
+            requireActivity().runOnUiThread(() ->
+                    binding.progressBar.setProgress(size, true));
+        }
+        final String res = text;
+        requireActivity().runOnUiThread(() ->
+                binding.timeText.setText(res));
+    }
 }

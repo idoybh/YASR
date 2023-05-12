@@ -1,9 +1,12 @@
 package com.idoybh.yasr;
 
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -38,7 +41,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -54,6 +59,7 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
+    private SharedPreferences mSharedPreferences;
     private volatile boolean mWaitingForResults = false;
 
     @Override
@@ -206,6 +212,7 @@ public class FirstFragment extends Fragment {
         private class ViewHolder extends RecyclerView.ViewHolder {
             public final TextInputEditText fileNameTxt;
             public final TextView timeTxt;
+            public final TextView createTimeTxt;
             public final TextView typeTxt;
             public final TextView sizeTxt;
             public final ImageButton playButton;
@@ -220,6 +227,7 @@ public class FirstFragment extends Fragment {
                 super(view);
                 fileNameTxt = view.findViewById(R.id.fileName);
                 timeTxt = view.findViewById(R.id.timeTxt);
+                createTimeTxt = view.findViewById(R.id.createTimeTxt);
                 typeTxt = view.findViewById(R.id.typeTxt);
                 sizeTxt = view.findViewById(R.id.sizeTxt);
                 playButton = view.findViewById(R.id.playButton);
@@ -266,8 +274,13 @@ public class FirstFragment extends Fragment {
             final int dotPos = name.lastIndexOf(".");
             final String ext = name.substring(dotPos + 1);
             final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+            holder.detailCard.setChecked(mSelectedRecordings.contains(file));
             holder.fileNameTxt.setText(name.substring(0, dotPos));
             holder.typeTxt.setText(name.substring(dotPos + 1).toUpperCase());
+            final Calendar lastModified = Calendar.getInstance();
+            lastModified.setTimeInMillis(file.lastModified());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd kk:mm", Locale.getDefault());
+            holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
             final long size = file.length();
             String sizeText = String.valueOf(size); // bytes
             if (size > GB) {
@@ -299,12 +312,12 @@ public class FirstFragment extends Fragment {
 
             // actions
             holder.detailCard.setOnLongClickListener(v -> {
-                checkItem(holder.detailCard, position);
+                checkItem(holder.detailCard, holder.getAdapterPosition());
                 return true;
             });
             holder.detailCard.setOnClickListener(v -> {
                 if (holder.detailCard.isChecked() || mSelectedRecordings.size() > 0)
-                    checkItem(holder.detailCard, position);
+                    checkItem(holder.detailCard, holder.getAdapterPosition());
             });
             holder.fileNameTxt.setOnEditorActionListener((v, actionId, event) -> {
                 if (actionId != EditorInfo.IME_ACTION_DONE) return false;
@@ -321,10 +334,10 @@ public class FirstFragment extends Fragment {
                 final File newFile = new File(file.getPath().replace(oldName, newName));
                 if (newName.isEmpty() || !file.renameTo(newFile)) return;
                 ((TextInputEditText) v).setText(newName);
-                mRecordings.set(position, newFile);
-                notifyItemRangeChanged(position, 1);
+                mRecordings.set(holder.getAdapterPosition(), newFile);
+                notifyItemRangeChanged(holder.getAdapterPosition(), 1);
             });
-            holder.selectButton.setOnClickListener(v -> checkItem(holder.detailCard, position));
+            holder.selectButton.setOnClickListener(v -> checkItem(holder.detailCard, holder.getAdapterPosition()));
             holder.saveButton.setOnClickListener(v -> {
                 if (!mSelectedRecordings.isEmpty()) return;
                 mSavingRecording = file;
@@ -491,6 +504,12 @@ public class FirstFragment extends Fragment {
             return mRecordings.size();
         }
 
+        @Override
+        public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
+            if (mSelectedRecordings.contains(mRecordings.get(holder.getLayoutPosition())))
+                holder.detailCard.setChecked(true);
+        }
+
         private void checkItem(MaterialCardView detailCard, int position) {
             final boolean isChecked = !detailCard.isChecked();
             final File file = mRecordings.get(position);
@@ -535,6 +554,7 @@ public class FirstFragment extends Fragment {
             recursiveSelection(binding.recycler, false);
             mSelectedRecordings.clear();
             mOnCheckedListener.onChecked(mSelectedRecordings);
+            notifyDataSetChanged();
         }
 
         public void selectAll() {
@@ -542,6 +562,7 @@ public class FirstFragment extends Fragment {
             mSelectedRecordings.clear();
             mSelectedRecordings.addAll(mRecordings);
             mOnCheckedListener.onChecked(mSelectedRecordings);
+            notifyDataSetChanged();
         }
 
         private void recursiveSelection(ViewGroup start, boolean select) {

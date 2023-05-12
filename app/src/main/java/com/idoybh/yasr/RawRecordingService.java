@@ -127,6 +127,7 @@ public class RawRecordingService extends RecordingService {
         }
         final boolean res = convertToWav(tmpFile, mOptions.getFile());
         updateListeners(res ? Status.IDLE : Status.FAILED);
+        stopSelf();
     }
 
     public class LocalBinder extends Binder {
