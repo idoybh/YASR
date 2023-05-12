@@ -1,9 +1,11 @@
 package com.idoybh.yasr;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,9 +15,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowMetrics;
+import android.view.animation.AnticipateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageButton;
@@ -62,6 +68,9 @@ public class FirstFragment extends Fragment {
     private SharedPreferences mSharedPreferences;
     private volatile boolean mWaitingForResults = false;
 
+    // to save animation calculations and do only once
+    private float ACTION_FAB_HEIGHT;
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -78,6 +87,15 @@ public class FirstFragment extends Fragment {
                 binding.fabShare,
                 binding.fabDelete
         ));
+
+        final FloatingActionButton sampleFab = mMultiSelectFabs.get(0);
+        final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
+                sampleFab.getLayoutParams();
+        final WindowMetrics metrics = requireActivity().getWindowManager().getCurrentWindowMetrics();
+        int[] position = new int[2];
+        sampleFab.getLocationInWindow(position);
+        ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
+        ACTION_FAB_HEIGHT *= 10; // more bounce
 
         List<File> recordings = new ArrayList<>();
         File fileDir = requireContext().getFilesDir();
@@ -98,8 +116,7 @@ public class FirstFragment extends Fragment {
         mAdapter = new RecyclerAdapter(recordings);
         mAdapter.setOnCheckedListener((selectedFiles) -> {
             final boolean selectionEmpty = selectedFiles.isEmpty();
-            for (FloatingActionButton fab : mMultiSelectFabs)
-                fab.setVisibility(selectionEmpty ? View.INVISIBLE : View.VISIBLE);
+            animateMultiFab(!selectionEmpty);
             binding.fabSelection.setImageResource(mAdapter.isFullySelected()
                     ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
         });
@@ -153,8 +170,7 @@ public class FirstFragment extends Fragment {
         binding.fabDelete.setOnClickListener(v -> displayAreYouSureDialog((dialog, which) -> {
             for (File file : mAdapter.getSelectedRecordings())
                     mAdapter.removeRecording(file);
-            for (FloatingActionButton fab : mMultiSelectFabs)
-                fab.setVisibility(View.INVISIBLE);
+            animateMultiFab(false);
         }, mAdapter.getSelectedRecordings().size()));
         binding.fab.setOnClickListener(v ->
                 NavHostFragment.findNavController(FirstFragment.this)
@@ -194,6 +210,45 @@ public class FirstFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void animateMultiFab(final boolean in) {
+        final int duration = 200;
+        ArrayList<ObjectAnimator> animatorsList = new ArrayList<>();
+        for (FloatingActionButton fab : mMultiSelectFabs) {
+            ObjectAnimator animator = ObjectAnimator.ofFloat(fab, "translationY",
+                    in ? ACTION_FAB_HEIGHT : 0, in ? 0 : ACTION_FAB_HEIGHT);
+            if (in) animator.setInterpolator(new OvershootInterpolator());
+            else animator.setInterpolator(new AnticipateInterpolator());
+            animator.setDuration(duration);
+            animatorsList.add(animator);
+        }
+        AnimatorSet animSet = new AnimatorSet();
+        animSet.playTogether(animatorsList.toArray(new ObjectAnimator[0]));
+        animSet.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                if (in) return;
+                for (FloatingActionButton fab : mMultiSelectFabs) {
+                    // always put the views back in place after the animation ends
+                    fab.setVisibility(View.INVISIBLE); // make the fab invisible before:
+                    fab.setTranslationY(ACTION_FAB_HEIGHT); // putting it back to its place
+                }
+            }
+
+            @Override
+            public void onAnimationStart(Animator animation) {
+                super.onAnimationStart(animation);
+                if (!in) return;
+                for (FloatingActionButton fab : mMultiSelectFabs) {
+                    fab.setTranslationY(-ACTION_FAB_HEIGHT); // get the fab out of the screen before:
+                    fab.setVisibility(View.VISIBLE); // making it visible
+                }
+            }
+        });
+        animSet.setDuration(duration);
+        animSet.start();
     }
 
     private class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHolder> {
