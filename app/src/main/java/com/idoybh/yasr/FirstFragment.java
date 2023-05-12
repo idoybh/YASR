@@ -13,6 +13,7 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.util.DisplayMetrics;
@@ -295,11 +296,8 @@ public class FirstFragment extends Fragment {
             }
 
             public void stopPlaying() {
-                if (mAnimateSliderTimer != null) {
-                    mAnimateSliderTimer.cancel();
-                    mAnimateSliderTimer.purge();
-                    mAnimateSliderTimer = null;
-                }
+                mAnimateSliderTask.stop();
+                mAnimateSliderTask = null;
                 mPlayingRecording = null;
                 mPlayingHolder = null;
                 mMediaPlayer.stop();
@@ -461,16 +459,10 @@ public class FirstFragment extends Fragment {
                 });
                 holder.playButton.setImageResource(R.drawable.baseline_pause_24);
                 mMediaPlayer.start();
-                if (mAnimateSliderTimer != null) {
-                    mAnimateSliderTimer.cancel();
-                    mAnimateSliderTimer.purge();
-                    mAnimateSliderTimer = null;
-                }
-                mAnimateSliderTimer = new Timer();
+                if (mAnimateSliderTask != null) mAnimateSliderTask.stop();
                 mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
                         holder.timeTxt, finalDurationInt);
-                mAnimateSliderTimer.scheduleAtFixedRate(mAnimateSliderTask,
-                        0, AnimateSliderTask.DELAY_MS);
+                mAnimateSliderTask.start();
             });
             holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
                 if (!fromUser) return;
@@ -488,6 +480,8 @@ public class FirstFragment extends Fragment {
                     if (mMediaPlayer == null || mPlayingRecording != file || !mMediaPlayer.isPlaying())
                         return;
                     mMediaPlayer.pause();
+                    mAnimateSliderTask.stop();
+                    mAnimateSliderTask = null;
                 }
 
                 @Override
@@ -495,17 +489,22 @@ public class FirstFragment extends Fragment {
                     if (mMediaPlayer == null || mPlayingRecording != file || mMediaPlayer.isPlaying())
                         return;
                     mMediaPlayer.start();
+                    if (mAnimateSliderTask != null) return;
+                    mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
+                            holder.timeTxt, finalDurationInt);
+                    mAnimateSliderTask.start();
                 }
             });
         }
 
-        private Timer mAnimateSliderTimer;
         private AnimateSliderTask mAnimateSliderTask;
         private class AnimateSliderTask extends TimerTask {
-            public static final int DELAY_MS = 50;
+            private Timer timer;
+            private static final int DELAY_MS = 50;
             private final File file;
             private final Slider slider;
             private final TextView text;
+            private final Handler handler;
             private final int duration;
 
             public AnimateSliderTask(File file, Slider slider, TextView text, int duration) {
@@ -513,11 +512,27 @@ public class FirstFragment extends Fragment {
                 this.slider = slider;
                 this.text = text;
                 this.duration = duration;
+                handler = new Handler(requireActivity().getMainLooper());
+            }
+
+            public void start() {
+                if (timer != null) return;
+                timer = new Timer();
+                timer.scheduleAtFixedRate(this, 0, DELAY_MS);
+            }
+
+            public void stop() {
+                if (timer == null) return;
+                timer.cancel();
+                timer.purge();
+                timer = null;
+                handler.removeCallbacksAndMessages(null);
+                this.cancel();
             }
 
             @Override
             public void run() {
-                requireActivity().runOnUiThread(() -> {
+                handler.postAtFrontOfQueue(() -> {
                     final boolean plays = mPlayingRecording != null &&
                             mPlayingRecording == file && mMediaPlayer != null;
                     try {
@@ -531,11 +546,10 @@ public class FirstFragment extends Fragment {
                         }
                         if (plays) {
                             // while this file still plays
+                            handler.removeCallbacksAndMessages(null);
                             return;
                         }
-                        mAnimateSliderTimer.cancel();
-                        mAnimateSliderTimer.purge();
-                        mAnimateSliderTimer = null;
+                        stop();
                     } catch (Exception ignored) {
                     }
                 });
