@@ -14,8 +14,11 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +28,7 @@ import android.view.inputmethod.EditorInfo;
 import android.webkit.MimeTypeMap;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -51,14 +55,18 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class FirstFragment extends Fragment {
-    private static final String MEDIA_PLAYER_THREAD_NAME = "MediaPlayer tracker";
     private static final int CREATE_FILE_CODE = 0x01;
+    private static final int SORT_BY_NAME = 0;
+    private static final int SORT_BY_TIME = 1;
+    private static final int SORT_BY_SIZE = 2;
+    private static final int SORT_BY_TYPE = 3;
     private static final long GB = 1000000000;
     private static final long MB = 1000000;
     private static final long KB = 1000;
@@ -66,6 +74,8 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
+    private int mSortSelection = ListView.INVALID_POSITION;
+    private boolean mReverseSort = false;
     private volatile boolean mWaitingForResults = false;
 
     // to save animation calculations and do only once
@@ -120,6 +130,50 @@ public class FirstFragment extends Fragment {
                     ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
         });
         binding.recycler.setAdapter(mAdapter);
+
+        // sort and filter
+        binding.filterText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) return;
+            final Editable editable = ((TextInputEditText) v).getText();
+            if (editable == null) return;
+            final String filter = editable.toString();
+
+        });
+        binding.filterText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // do nothing
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // do nothing
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (s == null || s.toString().isEmpty()) {
+                    mAdapter.filter(null);
+                    return;
+                }
+                mAdapter.filter(s.toString());
+            }
+        });
+        final String[] sorts = requireContext().getResources().getStringArray(R.array.sort_by_items);
+        ArrayAdapter<String> menuAdapter = new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
+        binding.sortMenu.setAdapter(menuAdapter);
+        binding.sortMenu.setOnItemClickListener((parent, view1, position1, id) -> {
+            mSortSelection = position1;
+            mAdapter.sortBy(position1);
+        });
+        binding.sortButton.setOnClickListener(v -> {
+            mReverseSort = !mReverseSort;
+            v.setRotation(mReverseSort ? 0 : 180);
+            if (mSortSelection == ListView.INVALID_POSITION) return;
+            mAdapter.sortBy(mSortSelection);
+        });
+        binding.sortButton.setRotation(180); // normal sort
 
         binding.fabSelection.setOnClickListener(v -> {
             if (mAdapter.isFullySelected()) {
@@ -180,7 +234,22 @@ public class FirstFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+
+        // must be done again to prevent item filtering
+        final String[] sorts = requireContext().getResources().getStringArray(R.array.sort_by_items);
+        ArrayAdapter<String> menuAdapter = new ArrayAdapter<>(
+                requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
+        binding.sortMenu.setAdapter(menuAdapter);
+    }
+
+    @Override
     public void onDestroyView() {
+        if (mAdapter.mFilterHT != null && mAdapter.mFilterHT.isAlive()) {
+            mAdapter.mFilterHT.quitSafely();
+            mAdapter.mFilterHT = null;
+        }
         super.onDestroyView();
         binding = null;
     }
@@ -253,6 +322,7 @@ public class FirstFragment extends Fragment {
     }
 
     private class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHolder> {
+        private final List<File> mOrigRecordings;
         private final List<File> mRecordings;
         private final List<File> mSelectedRecordings = new ArrayList<>();
         private File mSavingRecording;
@@ -311,6 +381,7 @@ public class FirstFragment extends Fragment {
 
         public RecyclerAdapter(List<File> recordings) {
             mRecordings = recordings;
+            mOrigRecordings = new ArrayList<>(mRecordings);
         }
 
         @NonNull
@@ -343,7 +414,6 @@ public class FirstFragment extends Fragment {
                 final Calendar lastModified = Calendar.getInstance();
                 lastModified.setTimeInMillis(file.lastModified());
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd kk:mm", Locale.getDefault());
-                holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
                 final long size = file.length();
                 String sizeText = String.valueOf(size); // bytes
                 if (size > GB) {
@@ -353,8 +423,6 @@ public class FirstFragment extends Fragment {
                 } else if (size > KB) {
                     sizeText = size / 1000 + " " + getString(R.string.unit_kb);
                 }
-                holder.sizeTxt.setText(sizeText);
-
                 String timeStr = "%02d:%02d/%02d:%02d";
                 long duration;
                 try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
@@ -369,11 +437,14 @@ public class FirstFragment extends Fragment {
                     timeStr = "ERROR";
                 }
                 final String finalTimeStr = timeStr;
+                final String finalSizeText = sizeText;
                 final long finalDuration = duration;
                 final int finalDurationInt = Math.round((float) duration / 1000);
 
                 requireActivity().runOnUiThread(() -> {
+                    holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
                     holder.timeTxt.setText(finalTimeStr);
+                    holder.sizeTxt.setText(finalSizeText);
                     if (finalDuration > 0)
                         holder.playProgress.setValueTo(finalDuration);
 
@@ -662,6 +733,87 @@ public class FirstFragment extends Fragment {
                     ((MaterialCardView) view).setChecked(select);
             }
         }
+
+        public void sortBy(final int sort) {
+            setSortProgressRunning(true);
+            new Thread(() -> {
+                switch (sort) {
+                    case SORT_BY_NAME -> mRecordings.sort(mReverseSort
+                            ? Comparator.comparing(File::getName).reversed()
+                            : Comparator.comparing(File::getName));
+                    case SORT_BY_TIME -> mRecordings.sort((o1, o2) -> {
+                        long duration1, duration2;
+                        try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                            retriever.setDataSource(o1.getPath());
+                            duration1 = Long.parseLong(retriever.extractMetadata(
+                                    MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        } catch (Exception e) {
+                            return mReverseSort ? -1 : 1;
+                        }
+                        try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                            retriever.setDataSource(o2.getPath());
+                            duration2 = Long.parseLong(retriever.extractMetadata(
+                                    MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        } catch (Exception e) {
+                            return mReverseSort ? 1 : -1;
+                        }
+                        return mReverseSort
+                                ? Long.compare(duration2, duration1)
+                                : Long.compare(duration1, duration2);
+                    });
+                    case SORT_BY_SIZE -> mRecordings.sort(mReverseSort
+                            ? Comparator.comparing(File::length).reversed()
+                            : Comparator.comparing(File::length));
+                    case SORT_BY_TYPE -> mRecordings.sort((o1, o2) -> {
+                        String name1 = o1.getName();
+                        String ext1 = name1.substring(name1.lastIndexOf(".") + 1);
+                        String name2 = o2.getName();
+                        String ext2 = name2.substring(name2.lastIndexOf(".") + 1);
+                        return mReverseSort ? ext2.compareTo(ext1) : ext1.compareTo(ext2);
+                    });
+                }
+                requireActivity().runOnUiThread(() -> {
+                    clearSelection(); // already notifies for data state changes
+                    setSortProgressRunning(false);
+                });
+            }).start();
+        }
+
+        private HandlerThread mFilterHT;
+        private Handler mFilterHandler;
+        private Handler mFilterUIHandler;
+        public void filter(final String filter) {
+            if (mFilterHT == null) {
+                mFilterHT = new HandlerThread("Filter HandlerThread");
+                mFilterHT.start();
+                mFilterHandler = new Handler(mFilterHT.getLooper());
+                mFilterUIHandler = new Handler(Looper.getMainLooper());
+            }
+            setSortProgressRunning(true);
+            mFilterHandler.post(() -> {
+                mRecordings.clear();
+                if (filter == null || filter.isEmpty()) {
+                    mRecordings.addAll(mOrigRecordings);
+                } else {
+                    for (File record : mOrigRecordings) {
+                        final String fn = record.getName();
+                        final String fnl = fn.substring(0, fn.lastIndexOf("."))
+                                .toLowerCase(Locale.ENGLISH);
+                        if (fnl.contains(filter.toLowerCase(Locale.ENGLISH)))
+                            mRecordings.add(record);
+                    }
+                }
+                mFilterUIHandler.removeCallbacksAndMessages(null);
+                mFilterUIHandler.post(() -> {
+                    if (mSortSelection != ListView.INVALID_POSITION) {
+                        mSortSelection = ListView.INVALID_POSITION;
+                        binding.sortMenu.setText("");
+                    }
+                    clearSelection(); // already notifies for data state changes
+                    setSortProgressRunning(false);
+                });
+            });
+        }
     }
 
     private void displayAreYouSureDialog(DialogInterface.OnClickListener listener) {
@@ -678,5 +830,14 @@ public class FirstFragment extends Fragment {
                 .setPositiveButton(R.string.button_yes, listener)
                 .setNegativeButton(R.string.button_no, (dialog, which) -> {})
         ).show();
+    }
+
+    private void setSortProgressRunning(final boolean running) {
+        if (binding == null) return;
+        binding.sortMenu.setEnabled(!running);
+        binding.sortButton.setEnabled(!running);
+        binding.sortIndicator.setIndeterminate(running);
+        if (!running) return;
+        binding.sortIndicator.bringToFront();
     }
 }

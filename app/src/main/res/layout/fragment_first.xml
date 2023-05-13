@@ -105,5 +105,91 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/filterTextLayout" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/sortIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="10dp"
+        android:indeterminate="false"
+        app:indicatorSize="20dp"
+        app:layout_constraintEnd_toEndOf="@+id/sortTextLayout"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/filterTextLayout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:hint="@string/input_filter_hint"
+        android:textColorHint="?colorPrimary"
+        app:boxStrokeColor="?colorPrimary"
+        app:endIconDrawable="@drawable/baseline_clear_24"
+        app:endIconMinSize="16sp"
+        app:endIconMode="clear_text"
+        app:endIconScaleType="fitXY"
+        app:layout_constraintEnd_toStartOf="@id/sortTextLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:startIconCheckable="false"
+        app:startIconMinSize="16sp"
+        app:startIconScaleType="fitXY">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/filterText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawablePadding="2dp"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:paddingStart="2dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="4dp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/sortTextLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="100dp"
+        android:layout_height="35dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:hint="@string/input_sort_hint"
+        android:textColorHint="?colorPrimary"
+        app:boxStrokeColor="?colorPrimary"
+        app:layout_constraintEnd_toStartOf="@id/sortButton"
+        app:layout_constraintStart_toEndOf="@id/filterTextLayout"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <AutoCompleteTextView
+            android:id="@+id/sortMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:paddingStart="2dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="4dp"
+            android:textSize="16sp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <ImageButton
+        android:id="@+id/sortButton"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="13dp"
+        android:layout_marginEnd="8dp"
+        android:background="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/baseline_filter_list_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="?attr/colorAccent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
