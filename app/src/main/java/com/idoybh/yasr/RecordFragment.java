@@ -616,7 +616,7 @@ public class RecordFragment extends Fragment {
         public void run() {
             updateDurationText();
         }
-    };
+    }
 
     private void updateDurationText() {
         if (binding == null) return;

@@ -5,10 +5,10 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -16,15 +16,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowMetrics;
 import android.view.animation.AnticipateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.MimeTypeMap;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -38,6 +37,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.idoybh.yasr.databinding.FragmentFirstBinding;
@@ -66,7 +66,6 @@ public class FirstFragment extends Fragment {
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
-    private SharedPreferences mSharedPreferences;
     private volatile boolean mWaitingForResults = false;
 
     // to save animation calculations and do only once
@@ -92,7 +91,6 @@ public class FirstFragment extends Fragment {
         final FloatingActionButton sampleFab = mMultiSelectFabs.get(0);
         final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
                 sampleFab.getLayoutParams();
-        final WindowMetrics metrics = requireActivity().getWindowManager().getCurrentWindowMetrics();
         int[] position = new int[2];
         sampleFab.getLocationInWindow(position);
         ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
@@ -173,10 +171,12 @@ public class FirstFragment extends Fragment {
                     mAdapter.removeRecording(file);
             animateMultiFab(false);
         }, mAdapter.getSelectedRecordings().size()));
-        binding.fab.setOnClickListener(v ->
-                NavHostFragment.findNavController(FirstFragment.this)
-                .navigate(R.id.action_FirstFragment_to_RecordFragment)
-        );
+        binding.fab.setOnClickListener(v -> {
+            if (mAdapter.mPlayingHolder != null)
+                mAdapter.mPlayingHolder.stopPlaying();
+            NavHostFragment.findNavController(FirstFragment.this)
+                    .navigate(R.id.action_FirstFragment_to_RecordFragment);
+        });
     }
 
     @Override
@@ -277,6 +277,7 @@ public class FirstFragment extends Fragment {
             public final ImageButton shareButton;
             public final ImageButton deleteButton;
             public final Slider playProgress;
+            public final CircularProgressIndicator loadingIndicator;
             public final MaterialCardView detailCard;
 
             public ViewHolder(View view) {
@@ -292,6 +293,7 @@ public class FirstFragment extends Fragment {
                 shareButton = view.findViewById(R.id.shareButton);
                 deleteButton = view.findViewById(R.id.deleteButton);
                 playProgress = view.findViewById(R.id.playProgress);
+                loadingIndicator = view.findViewById(R.id.loadingIndicator);
                 detailCard = view.findViewById(R.id.detailCard);
             }
 
@@ -330,38 +332,126 @@ public class FirstFragment extends Fragment {
             holder.detailCard.setChecked(mSelectedRecordings.contains(file));
             holder.fileNameTxt.setText(name.substring(0, dotPos));
             holder.typeTxt.setText(name.substring(dotPos + 1).toUpperCase());
-            final Calendar lastModified = Calendar.getInstance();
-            lastModified.setTimeInMillis(file.lastModified());
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd kk:mm", Locale.getDefault());
-            holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
-            final long size = file.length();
-            String sizeText = String.valueOf(size); // bytes
-            if (size > GB) {
-                sizeText = size / GB + " " + getString(R.string.unit_gb);
-            } else if (size > MB) {
-                sizeText = size / MB + " " + getString(R.string.unit_mb);
-            } else if (size > KB) {
-                sizeText = size / 1000 + " " + getString(R.string.unit_kb);
-            }
-            holder.sizeTxt.setText(sizeText);
-            String timeStr = "%02d:%02d/%02d:%02d";
-            long duration;
-            try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
-                retriever.setDataSource(file.getPath());
-                duration = Long.parseLong(retriever.extractMetadata(
-                        MediaMetadataRetriever.METADATA_KEY_DURATION));
-                final int durationSub = Math.round((float) duration / 1000);
-                timeStr = String.format(Locale.ENGLISH, timeStr, 0, 0,
-                        durationSub / 60, durationSub % 60);
-            } catch (Exception e) {
-                duration = -1;
-                timeStr = "ERROR";
-            }
-            holder.timeTxt.setText(timeStr);
-            if (duration > 0)
-                holder.playProgress.setValueTo(duration);
-            final long finalDuration = duration;
-            final int finalDurationInt = Math.round((float) duration / 1000);
+
+            // post heavy operations on a thread and indicate we're still loading this view
+            // otherwise, because of the nature of a recycler view, it'll hand during fast scrolling
+            // what follows is essentially MediaMetadataRetriever for duration and all its dependencies
+            // and some other things that could be added simply
+            // in tests the user barely gets to see the progress bar, but scrolling latency is reduced by much
+            holder.loadingIndicator.setIndeterminate(true);
+            new Thread(() -> {
+                final Calendar lastModified = Calendar.getInstance();
+                lastModified.setTimeInMillis(file.lastModified());
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd kk:mm", Locale.getDefault());
+                holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
+                final long size = file.length();
+                String sizeText = String.valueOf(size); // bytes
+                if (size > GB) {
+                    sizeText = size / GB + " " + getString(R.string.unit_gb);
+                } else if (size > MB) {
+                    sizeText = size / MB + " " + getString(R.string.unit_mb);
+                } else if (size > KB) {
+                    sizeText = size / 1000 + " " + getString(R.string.unit_kb);
+                }
+                holder.sizeTxt.setText(sizeText);
+
+                String timeStr = "%02d:%02d/%02d:%02d";
+                long duration;
+                try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
+                    retriever.setDataSource(file.getPath());
+                    duration = Long.parseLong(retriever.extractMetadata(
+                            MediaMetadataRetriever.METADATA_KEY_DURATION));
+                    final int durationSub = Math.round((float) duration / 1000);
+                    timeStr = String.format(Locale.ENGLISH, timeStr, 0, 0,
+                            durationSub / 60, durationSub % 60);
+                } catch (Exception e) {
+                    duration = -1;
+                    timeStr = "ERROR";
+                }
+                final String finalTimeStr = timeStr;
+                final long finalDuration = duration;
+                final int finalDurationInt = Math.round((float) duration / 1000);
+
+                requireActivity().runOnUiThread(() -> {
+                    holder.timeTxt.setText(finalTimeStr);
+                    if (finalDuration > 0)
+                        holder.playProgress.setValueTo(finalDuration);
+
+                    // player actions
+                    holder.playButton.setOnClickListener(v -> {
+                        if (mPlayingRecording != null && mPlayingRecording != file) {
+                            // a different file is playing, stop it before
+                            mPlayingHolder.stopPlaying();
+                            String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                                    0, 0, finalDurationInt / 60, finalDurationInt % 60);
+                            holder.timeTxt.setText(timeText);
+                        } else if (mPlayingRecording != null && mMediaPlayer != null) {
+                            // this is currently playing / paused
+                            mMediaPlayer.seekTo((int) holder.playProgress.getValue());
+                            if (mMediaPlayer.isPlaying()) {
+                                mMediaPlayer.pause();
+                                holder.playButton.setImageResource(R.drawable.baseline_play_arrow_24);
+                                return;
+                            }
+                            mMediaPlayer.start();
+                            holder.playButton.setImageResource(R.drawable.baseline_pause_24);
+                            return;
+                        }
+                        // play this file
+                        mPlayingRecording = file;
+                        mPlayingHolder = holder;
+                        mMediaPlayer = MediaPlayer.create(requireActivity(), Uri.fromFile(file));
+                        mMediaPlayer.setLooping(false);
+                        mMediaPlayer.seekTo((int) holder.playProgress.getValue());
+                        mMediaPlayer.setOnCompletionListener(mp -> {
+                            holder.stopPlaying();
+                            String timeText = "%02d:%02d/%02d:%02d";
+                            timeText = String.format(Locale.ENGLISH, timeText, 0, 0,
+                                    finalDurationInt / 60, finalDurationInt % 60);
+                            holder.timeTxt.setText(timeText);
+                            animateSliderValue(holder.playProgress, 0);
+                        });
+                        holder.playButton.setImageResource(R.drawable.baseline_pause_24);
+                        mMediaPlayer.start();
+                        if (mAnimateSliderTask != null) mAnimateSliderTask.stop();
+                        mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
+                                holder.timeTxt, finalDurationInt);
+                        mAnimateSliderTask.start();
+                    });
+                    holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
+                        if (!fromUser) return;
+                        final int pos = (int) value;
+                        String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
+                                (pos / 1000) / 60, (pos / 1000) % 60,
+                                (finalDuration / 1000) / 60, (finalDuration / 1000) % 60);
+                        holder.timeTxt.setText(timeText);
+                        if (mMediaPlayer == null || file != mPlayingRecording) return;
+                        mMediaPlayer.seekTo(pos);
+                    });
+                    holder.playProgress.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
+                        @Override
+                        public void onStartTrackingTouch(@NonNull Slider slider) {
+                            if (mMediaPlayer == null || mPlayingRecording != file || !mMediaPlayer.isPlaying())
+                                return;
+                            mMediaPlayer.pause();
+                            mAnimateSliderTask.stop();
+                            mAnimateSliderTask = null;
+                        }
+
+                        @Override
+                        public void onStopTrackingTouch(@NonNull Slider slider) {
+                            if (mMediaPlayer == null || mPlayingRecording != file || mMediaPlayer.isPlaying())
+                                return;
+                            mMediaPlayer.start();
+                            if (mAnimateSliderTask != null) return;
+                            mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
+                                    holder.timeTxt, finalDurationInt);
+                            mAnimateSliderTask.start();
+                        }
+                    });
+                    holder.loadingIndicator.setIndeterminate(false);
+                }); // </runOnUiThread>
+            }).start(); // </new Thread()>
 
             // actions
             holder.detailCard.setOnLongClickListener(v -> {
@@ -422,79 +512,6 @@ public class FirstFragment extends Fragment {
                 if (!mSelectedRecordings.isEmpty()) return;
                 displayAreYouSureDialog((dialog, which) -> removeRecording(file));
             });
-
-            // player actions
-            holder.playButton.setOnClickListener(v -> {
-                if (mPlayingRecording != null && mPlayingRecording != file) {
-                    // a different file is playing, stop it before
-                    mPlayingHolder.stopPlaying();
-                    String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                            0, 0, finalDurationInt / 60, finalDurationInt % 60);
-                    holder.timeTxt.setText(timeText);
-                } else if (mPlayingRecording != null && mMediaPlayer != null) {
-                    // this is currently playing / paused
-                    mMediaPlayer.seekTo((int) holder.playProgress.getValue());
-                    if (mMediaPlayer.isPlaying()) {
-                        mMediaPlayer.pause();
-                        holder.playButton.setImageResource(R.drawable.baseline_play_arrow_24);
-                        return;
-                    }
-                    mMediaPlayer.start();
-                    holder.playButton.setImageResource(R.drawable.baseline_pause_24);
-                    return;
-                }
-                // play this file
-                mPlayingRecording = file;
-                mPlayingHolder = holder;
-                mMediaPlayer = MediaPlayer.create(requireActivity(), Uri.fromFile(file));
-                mMediaPlayer.setLooping(false);
-                mMediaPlayer.seekTo((int) holder.playProgress.getValue());
-                mMediaPlayer.setOnCompletionListener(mp -> {
-                    holder.stopPlaying();
-                    String timeText = "%02d:%02d/%02d:%02d";
-                    timeText = String.format(Locale.ENGLISH, timeText, 0, 0,
-                            finalDurationInt / 60, finalDurationInt % 60);
-                    holder.timeTxt.setText(timeText);
-                    animateSliderValue(holder.playProgress, 0);
-                });
-                holder.playButton.setImageResource(R.drawable.baseline_pause_24);
-                mMediaPlayer.start();
-                if (mAnimateSliderTask != null) mAnimateSliderTask.stop();
-                mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
-                        holder.timeTxt, finalDurationInt);
-                mAnimateSliderTask.start();
-            });
-            holder.playProgress.addOnChangeListener((slider, value, fromUser) -> {
-                if (!fromUser) return;
-                final int pos = (int) value;
-                String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
-                        (pos / 1000) / 60, (pos / 1000) % 60,
-                        (finalDuration / 1000) / 60, (finalDuration / 1000) % 60);
-                holder.timeTxt.setText(timeText);
-                if (mMediaPlayer == null || file != mPlayingRecording) return;
-                mMediaPlayer.seekTo(pos);
-            });
-            holder.playProgress.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
-                @Override
-                public void onStartTrackingTouch(@NonNull Slider slider) {
-                    if (mMediaPlayer == null || mPlayingRecording != file || !mMediaPlayer.isPlaying())
-                        return;
-                    mMediaPlayer.pause();
-                    mAnimateSliderTask.stop();
-                    mAnimateSliderTask = null;
-                }
-
-                @Override
-                public void onStopTrackingTouch(@NonNull Slider slider) {
-                    if (mMediaPlayer == null || mPlayingRecording != file || mMediaPlayer.isPlaying())
-                        return;
-                    mMediaPlayer.start();
-                    if (mAnimateSliderTask != null) return;
-                    mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
-                            holder.timeTxt, finalDurationInt);
-                    mAnimateSliderTask.start();
-                }
-            });
         }
 
         private AnimateSliderTask mAnimateSliderTask;
@@ -554,7 +571,7 @@ public class FirstFragment extends Fragment {
                     }
                 });
             }
-        };
+        }
 
         private static void animateSliderValue(Slider slider, float value) {
             final ValueAnimator animator = ValueAnimator.ofFloat(slider.getValue(), value);
@@ -619,6 +636,7 @@ public class FirstFragment extends Fragment {
             return mSelectedRecordings.size() == mRecordings.size();
         }
 
+        @SuppressLint("NotifyDataSetChanged")
         public void clearSelection() {
             recursiveSelection(binding.recycler, false);
             mSelectedRecordings.clear();
@@ -626,6 +644,7 @@ public class FirstFragment extends Fragment {
             notifyDataSetChanged();
         }
 
+        @SuppressLint("NotifyDataSetChanged")
         public void selectAll() {
             recursiveSelection(binding.recycler, true);
             mSelectedRecordings.clear();
