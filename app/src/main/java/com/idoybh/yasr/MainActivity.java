@@ -18,6 +18,8 @@ package com.idoybh.yasr;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -42,7 +44,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    public static final String EXTRA_RECORDING = "com.idoybh.yasr.RECORDING";
     private static final int PERMISSION_REQUEST_CODE = 0x1A;
+
+    private SharedPreferences mSharedPreferences;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -71,6 +76,45 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(arr, PERMISSION_REQUEST_CODE);
             });
         }
+
+        if (maybeResumeRecording(getIntent())) return;
+        maybeResumeRecordingPref();
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        maybeResumeRecording(intent);
+    }
+
+    private boolean maybeResumeRecording(Intent intent) {
+        if (intent.hasExtra(EXTRA_RECORDING)) return false;
+        final String extra = intent.getStringExtra(EXTRA_RECORDING);
+        if (extra == null || extra.isEmpty()) return false;
+        // we resumed from the recording notification - resume showing
+        Bundle bundle = new Bundle();
+        bundle.putString(RecordFragment.BUNDLE_ARG1, extra);
+        Navigation.findNavController(this, R.id.nav_host_fragment_content_main)
+                .navigate(R.id.action_FirstFragment_to_RecordFragment, bundle);
+        return true;
+    }
+
+    private void maybeResumeRecordingPref() {
+        final String extra = getPrefs().getString(RecordingService.PREF_STARTED, null);
+        if (extra == null || extra.isEmpty()) return;
+        // we're in progress but the activity was killed - resume showing
+        Bundle bundle = new Bundle();
+        bundle.putString(RecordFragment.BUNDLE_ARG1, extra);
+        Navigation.findNavController(this, R.id.nav_host_fragment_content_main)
+                .navigate(R.id.action_FirstFragment_to_RecordFragment, bundle);
+    }
+
+    protected SharedPreferences getPrefs() {
+        if (mSharedPreferences != null)
+            return mSharedPreferences;
+        mSharedPreferences = getSharedPreferences(
+                RecordFragment.SHARED_PREF_FILE, Context.MODE_PRIVATE);
+        return mSharedPreferences;
     }
 
     @Override

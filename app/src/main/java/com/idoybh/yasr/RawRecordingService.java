@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.Calendar;
 
 public class RawRecordingService extends RecordingService {
+    public static final String EXTRA_INTENT = "raw";
     private final IBinder binder = new RawRecordingService.LocalBinder();
     private AudioRecord mRecorder;
     private AudioFormat mFormat;
@@ -50,7 +51,10 @@ public class RawRecordingService extends RecordingService {
     @SuppressLint("MissingPermission")
     @Override
     public synchronized void startRecording() {
-        if (mStatus == Status.STARTED) return;
+        if (mStatus != Status.IDLE) {
+            updateListeners(mStatus);
+            return;
+        }
         int encoding = AudioFormat.ENCODING_PCM_16BIT;
         if (mOptions.getEncodingRate() == 32)
             encoding = AudioFormat.ENCODING_PCM_32BIT;
@@ -143,6 +147,11 @@ public class RawRecordingService extends RecordingService {
         final boolean res = convertToWav(tmpFile, mOptions.getFile());
         updateListeners(res ? Status.IDLE : Status.FAILED);
         stopSelf();
+    }
+
+    @Override
+    protected String getExtraIntentString() {
+        return EXTRA_INTENT;
     }
 
     public class LocalBinder extends Binder {

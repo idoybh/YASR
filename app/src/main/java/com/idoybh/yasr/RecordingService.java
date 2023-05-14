@@ -15,6 +15,7 @@
  */
 package com.idoybh.yasr;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -27,6 +28,7 @@ import android.media.AudioDeviceInfo;
 import android.media.MediaRecorder;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.PowerManager;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,10 +41,12 @@ import java.util.Map;
  * Main application service - manages all recording procedure
  */
 public class RecordingService extends Service {
-    public static final String PREF_RECORDING = "service_recording";
+    public static final String PREF_STARTED = "service_started";
+    public static final String EXTRA_INTENT = "regular";
     public static final String MPEG_4_EXT = "m4a";
     public static final String OGG_EXT = "ogg";
     public static final String WAV_EXT = "wav";
+    private static final String WAKELOCK_TAG = "YASR::RecordingWakelock";
     private static final String NOTIFICATION_CHANNEL = "Recording Service";
     private static final int NOTIFICATION_ID = 0x01;
     private static final Map<String, Integer> EXT_TO_OUT = new HashMap<>(Map.of(
@@ -57,6 +61,7 @@ public class RecordingService extends Service {
     protected RecordOptions mOptions;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPreferences;
+    private PowerManager.WakeLock mWakeLock;
     protected int mStatus = Status.IDLE;
     private int mStatusExtra = 0;
     protected Calendar mStartTime;
@@ -79,12 +84,14 @@ public class RecordingService extends Service {
         channel.setSound(null, null);
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         nm.createNotificationChannel(channel);
-        PendingIntent contentPI = PendingIntent.getActivity(this, 0,
-                new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+        Intent contentIntent = new Intent(this, MainActivity.class);
+        contentIntent.putExtra(MainActivity.EXTRA_RECORDING, getExtraIntentString());
+        PendingIntent contentPI = PendingIntent.getActivity(this, NOTIFICATION_ID,
+                contentIntent, PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new Notification.Builder(this, NOTIFICATION_CHANNEL)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.service_notification_text))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.baseline_mic_24)
                 .setContentIntent(contentPI)
                 .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
                 .setOngoing(true)
@@ -109,13 +116,20 @@ public class RecordingService extends Service {
         return binder;
     }
 
+    public synchronized RecordOptions getOptions() {
+        return mOptions;
+    }
+
     public synchronized void setOptions(RecordOptions options) {
         mOptions = options;
     }
 
     @SuppressWarnings("ConstantConditions")
     public synchronized void startRecording() {
-        if (mStatus == Status.STARTED) return;
+        if (mStatus != Status.IDLE) {
+            updateListeners(mStatus);
+            return;
+        }
         final File recordFile = mOptions.getFile();
         final int outFormat = EXT_TO_OUT.getOrDefault(getFileExtension(recordFile), -1);
         mRecorder = new MediaRecorder(this);
@@ -227,8 +241,15 @@ public class RecordingService extends Service {
         updateListeners(status, 0);
     }
 
+    @SuppressLint("ApplySharedPref")
     private synchronized void updateListeners(final int status, final int extra) {
-        if (status == mStatus) return;
+        if (status == Status.IDLE) {
+            getPrefs().edit().remove(PREF_STARTED).commit();
+            updateWakelock(false);
+        } else {
+            getPrefs().edit().putString(PREF_STARTED, getExtraIntentString()).commit();
+            updateWakelock(true);
+        }
         mStatus = status;
         mStatusExtra = extra;
         for (StatusListener listener : mListeners) {
@@ -236,9 +257,36 @@ public class RecordingService extends Service {
         }
     }
 
+    @SuppressLint("WakelockTimeout")
+    protected synchronized void updateWakelock(final boolean acquire) {
+        if (acquire) {
+            if (mWakeLock == null) {
+                PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+                mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG);
+            }
+            if (mWakeLock.isHeld()) return;
+            mWakeLock.acquire();
+            return;
+        }
+        if (mWakeLock == null || !mWakeLock.isHeld()) return;
+        mWakeLock.release();
+    }
+
+    protected SharedPreferences getPrefs() {
+        if (mSharedPreferences != null)
+            return mSharedPreferences;
+        mSharedPreferences = getSharedPreferences(
+                RecordFragment.SHARED_PREF_FILE, Context.MODE_PRIVATE);
+        return mSharedPreferences;
+    }
+
     private static String getFileExtension(final File file) {
         final String name = file.getName();
         return name.substring(name.lastIndexOf(".") + 1);
+    }
+
+    protected String getExtraIntentString() {
+        return EXTRA_INTENT;
     }
 
     public class LocalBinder extends Binder {

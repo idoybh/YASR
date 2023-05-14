@@ -54,7 +54,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class RecordFragment extends Fragment {
-    private static final String SHARED_PREF_FILE = "SoundRecorder";
+    public static final String BUNDLE_ARG1 = "recording";
+    public static final String SHARED_PREF_FILE = "yasr_prefs";
     private static final String PREF_INPUT_DEVICE = "input_device";
     private static final String PREF_OUTPUT_EXT = "output_ext";
     private static final String PREF_OUTPUT_QUALITY = "output_quality";
@@ -81,6 +82,7 @@ public class RecordFragment extends Fragment {
     private RawRecordingService mRawService;
     private boolean isStarted = false;
     private boolean isRawStarted = false;
+    private boolean isResumed = false;
     private Timer mNoiseTimer;
     private TimerTask mNoiseTimerTask;
 
@@ -159,6 +161,17 @@ public class RecordFragment extends Fragment {
 
         updateInfoText();
         registerToMicAmp();
+
+        Bundle bundle = getArguments();
+        if (bundle == null) return;
+        final String extra = bundle.getString(BUNDLE_ARG1, null);
+        if (extra == null || extra.isEmpty()) return;
+        if (isStarted || isRawStarted) return;
+        // resume showing progress by connecting to the service again
+        isResumed = true;
+        Intent intent = new Intent(requireContext(), extra.equals(RecordingService.EXTRA_INTENT)
+                ? RecordingService.class : RawRecordingService.class);
+        requireContext().bindService(intent, connection, Context.BIND_ABOVE_CLIENT);
     }
 
     private final OnBackPressedCallback onBackCallback = new OnBackPressedCallback(false) {
@@ -280,14 +293,12 @@ public class RecordFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        onBackCallback.setEnabled(false);
         if (mRawService != null && isRawStarted || mService != null && isStarted) {
             if (mRawService != null) mRawService.removeListener(mStatusListener);
             if (mService != null) mService.removeListener(mStatusListener);
             if (isStarted || isRawStarted) {
-                Intent intent = new Intent(requireContext(),
-                        isStarted ? RecordingService.class : RawRecordingService.class);
                 requireContext().unbindService(connection);
-                requireContext().stopService(intent);
             }
         }
         binding = null;
@@ -300,7 +311,7 @@ public class RecordFragment extends Fragment {
             Intent intent = new Intent(requireContext(), checkedOutputID != R.id.outputBtnWAV
                     ? RecordingService.class : RawRecordingService.class);
             requireContext().startForegroundService(intent); // run until we stop it
-            requireContext().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+            requireContext().bindService(intent, connection, Context.BIND_ABOVE_CLIENT);
 
             // save current settings as prefs for the next time we run
             SharedPreferences.Editor editor = getPrefs().edit();
@@ -388,19 +399,9 @@ public class RecordFragment extends Fragment {
             // We've bound to LocalService, cast the IBinder and get LocalService instance.
             if (className.getClassName().equals(RawRecordingService.class.getName())) {
                 RawRecordingService.LocalBinder binder = (RawRecordingService.LocalBinder) service;
-                if (mService != null) {
-                    mService.stopSelf();
-                    mService = null;
-                    isStarted = false;
-                }
                 mRawService = binder.getService();
                 isRawStarted = true;
             } else {
-                if (mRawService != null) {
-                    mRawService.stopSelf();
-                    mRawService = null;
-                    isRawStarted = false;
-                }
                 RecordingService.LocalBinder binder = (RecordingService.LocalBinder) service;
                 mService = binder.getService();
                 isStarted = true;
@@ -429,12 +430,28 @@ public class RecordFragment extends Fragment {
             RecordingService.RecordOptions opts = new RecordingService.RecordOptions(
                     mCurrentRecordingFile, info, mSampleRate, mEncodeRate, channels, limit);
             if (mRawService != null) {
-                mRawService.setOptions(opts);
+                if (isResumed) {
+                    mRawService.clearListeners();
+                    String fn = mRawService.getOptions().getFile().getName();
+                    fn = fn.substring(0, fn.lastIndexOf("."));
+                    mDefaultName = fn;
+                    binding.recordingNameInputText.setText(fn);
+                } else {
+                    mRawService.setOptions(opts);
+                }
                 mRawService.addListener(mStatusListener);
                 mRawService.startRecording();
                 return;
             }
-            mService.setOptions(opts);
+            if (isResumed) {
+                mService.clearListeners();
+                String fn = mService.getOptions().getFile().getName();
+                fn = fn.substring(0, fn.lastIndexOf("."));
+                mDefaultName = fn;
+                binding.recordingNameInputText.setText(fn);
+            } else {
+                mService.setOptions(opts);
+            }
             mService.addListener(mStatusListener);
             mService.startRecording();
         }
