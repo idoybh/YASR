@@ -98,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Navigation.findNavController(this, R.id.nav_host_fragment_content_main)
+                    .navigate(R.id.open_settings_fragment);
             return true;
         } else if (id == R.id.action_about) {
             (new MaterialAlertDialogBuilder(MainActivity.this)

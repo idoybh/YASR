@@ -1,0 +1,20 @@
+<resources>
+    <string-array name="sort_by_items">
+        <item>Name</item>
+        <item>Time</item>
+        <item>Size</item>
+        <item>Type</item>
+    </string-array>
+
+    <string-array name="ui_mode_entries">
+        <item>Light</item>
+        <item>Dark</item>
+        <item>Follow system (default)</item>
+    </string-array>
+
+    <string-array name="ui_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+</resources>

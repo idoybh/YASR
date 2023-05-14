@@ -60,11 +60,4 @@
     <string name="mic_in_use">Microphone is currently in use by a different app</string>
     <string name="input_filter_hint">Filter</string>
     <string name="input_sort_hint">Sort by</string>
-
-    <string-array name="sort_by_items">
-        <item>Name</item>
-        <item>Time</item>
-        <item>Size</item>
-        <item>Type</item>
-    </string-array>
 </resources>

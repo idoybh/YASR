@@ -1,0 +1,10 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ListPreference
+        android:defaultValue="2"
+        android:entries="@array/ui_mode_entries"
+        android:entryValues="@array/ui_mode_values"
+        android:key="ui_mode"
+        android:title="App Theme"
+        app:icon="@drawable/baseline_dark_mode_24" />
+</PreferenceScreen>
