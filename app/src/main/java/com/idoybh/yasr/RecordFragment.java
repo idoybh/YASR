@@ -266,7 +266,6 @@ public class RecordFragment extends Fragment {
     @Override
     public void onStop() {
         registerToDuration(false);
-        setBackEnabled(true);
         if (mNoiseTimer != null) {
             mNoiseTimer.cancel();
             mNoiseTimer.purge();

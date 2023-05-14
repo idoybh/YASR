@@ -34,6 +34,7 @@ import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -174,6 +175,11 @@ public class FirstFragment extends Fragment {
                 mAdapter.filter(s.toString());
             }
         });
+        binding.filterText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId != EditorInfo.IME_ACTION_DONE) return false;
+            binding.filterText.clearFocus();
+            return false;
+        });
         final String[] sorts = requireContext().getResources().getStringArray(R.array.sort_by_items);
         ArrayAdapter<String> menuAdapter = new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
@@ -298,6 +304,8 @@ public class FirstFragment extends Fragment {
     }
 
     private void animateMultiFab(final boolean in) {
+        if (mMultiSelectFabs.get(0).getVisibility() == View.VISIBLE && in) return;
+        if (mMultiSelectFabs.get(0).getVisibility() == View.INVISIBLE && !in) return;
         final int duration = 200;
         ArrayList<ObjectAnimator> animatorsList = new ArrayList<>();
         for (FloatingActionButton fab : mMultiSelectFabs) {
@@ -678,8 +686,11 @@ public class FirstFragment extends Fragment {
 
         @Override
         public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
-            if (mSelectedRecordings.contains(mRecordings.get(holder.getLayoutPosition())))
+            if (mSelectedRecordings.contains(mRecordings.get(holder.getLayoutPosition()))) {
                 holder.detailCard.setChecked(true);
+                return;
+            }
+            holder.detailCard.setChecked(false);
         }
 
         private void checkItem(MaterialCardView detailCard, int position) {
@@ -722,21 +733,17 @@ public class FirstFragment extends Fragment {
             return mSelectedRecordings.size() == mRecordings.size();
         }
 
-        @SuppressLint("NotifyDataSetChanged")
         public void clearSelection() {
             recursiveSelection(binding.recycler, false);
             mSelectedRecordings.clear();
             mOnCheckedListener.onChecked(mSelectedRecordings);
-            notifyDataSetChanged();
         }
 
-        @SuppressLint("NotifyDataSetChanged")
         public void selectAll() {
             recursiveSelection(binding.recycler, true);
             mSelectedRecordings.clear();
             mSelectedRecordings.addAll(mRecordings);
             mOnCheckedListener.onChecked(mSelectedRecordings);
-            notifyDataSetChanged();
         }
 
         private void recursiveSelection(ViewGroup start, boolean select) {
@@ -749,6 +756,7 @@ public class FirstFragment extends Fragment {
             }
         }
 
+        @SuppressLint("NotifyDataSetChanged")
         public void sortBy(final int sort) {
             setSortProgressRunning(true);
             new Thread(() -> {
@@ -788,7 +796,8 @@ public class FirstFragment extends Fragment {
                     });
                 }
                 requireActivity().runOnUiThread(() -> {
-                    clearSelection(); // already notifies for data state changes
+                    clearSelection();
+                    notifyDataSetChanged();
                     setSortProgressRunning(false);
                 });
             }).start();
@@ -797,6 +806,7 @@ public class FirstFragment extends Fragment {
         private HandlerThread mFilterHT;
         private Handler mFilterHandler;
         private Handler mFilterUIHandler;
+        @SuppressLint("NotifyDataSetChanged")
         public void filter(final String filter) {
             if (mFilterHT == null) {
                 mFilterHT = new HandlerThread("Filter HandlerThread");
@@ -824,7 +834,8 @@ public class FirstFragment extends Fragment {
                         mSortSelection = ListView.INVALID_POSITION;
                         binding.sortMenu.setText("");
                     }
-                    clearSelection(); // already notifies for data state changes
+                    clearSelection();
+                    notifyDataSetChanged();
                     setSortProgressRunning(false);
                 });
             });
