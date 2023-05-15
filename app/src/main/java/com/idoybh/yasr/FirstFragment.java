@@ -80,9 +80,10 @@ import java.util.TimerTask;
 public class FirstFragment extends Fragment {
     private static final int CREATE_FILE_CODE = 0x01;
     private static final int SORT_BY_NAME = 0;
-    private static final int SORT_BY_TIME = 1;
-    private static final int SORT_BY_SIZE = 2;
-    private static final int SORT_BY_TYPE = 3;
+    private static final int SORT_BY_DATE = 1;
+    private static final int SORT_BY_DURATION = 2;
+    private static final int SORT_BY_SIZE = 3;
+    private static final int SORT_BY_TYPE = 4;
     private static final long GB = 1000000000;
     private static final long MB = 1000000;
     private static final long KB = 1000;
@@ -811,7 +812,10 @@ public class FirstFragment extends Fragment {
                     case SORT_BY_NAME -> mRecordings.sort(mReverseSort
                             ? Comparator.comparing(File::getName).reversed()
                             : Comparator.comparing(File::getName));
-                    case SORT_BY_TIME -> mRecordings.sort((o1, o2) -> {
+                    case SORT_BY_DATE -> mRecordings.sort(mReverseSort
+                            ? Comparator.comparing(File::lastModified).reversed()
+                            : Comparator.comparing(File::lastModified));
+                    case SORT_BY_DURATION -> mRecordings.sort((o1, o2) -> {
                         long duration1, duration2;
                         try (MediaMetadataRetriever retriever = new MediaMetadataRetriever()) {
                             retriever.setDataSource(o1.getPath());
