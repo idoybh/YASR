@@ -37,6 +37,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.idoybh.yasr.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 0x1A;
 
     private SharedPreferences mSharedPreferences;
+    private FirebaseAnalytics mFirebaseAnalytics;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
