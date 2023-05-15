@@ -37,6 +37,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.elevation.SurfaceColors;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.idoybh.yasr.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
@@ -64,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+
+        // statusbar color
+        getWindow().setStatusBarColor(SurfaceColors.SURFACE_2.getColor(this));
 
         // permission setup
         List<String> missingPerms = new ArrayList<>(List.of(

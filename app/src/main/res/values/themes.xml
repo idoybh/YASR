@@ -23,7 +23,9 @@
         <item name="colorSecondary">@android:color/system_accent2_400</item>
         <item name="colorSecondaryVariant">@android:color/system_accent2_500</item>
         <item name="colorOnSecondary">@android:color/system_accent2_900</item>
-        <item name="android:statusBarColor">@null</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
     <style name="Theme.SoundRecorder.NoActionBar">
         <item name="windowActionBar">false</item>
