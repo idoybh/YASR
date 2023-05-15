@@ -431,6 +431,7 @@ public class FirstFragment extends Fragment {
         private final List<File> mSelectedRecordings = new ArrayList<>();
         private File mSavingRecording;
         private File mPlayingRecording;
+        private boolean mIsPaused = false;
         private RecyclerAdapter.ViewHolder mPlayingHolder;
         private MediaPlayer mMediaPlayer;
 
@@ -479,6 +480,7 @@ public class FirstFragment extends Fragment {
                 mMediaPlayer.stop();
                 mMediaPlayer.release();
                 mMediaPlayer = null;
+                mIsPaused = false;
                 playButton.setImageResource(R.drawable.baseline_play_arrow_24);
             }
         }
@@ -560,19 +562,23 @@ public class FirstFragment extends Fragment {
                             String timeText = String.format(Locale.ENGLISH, "%02d:%02d/%02d:%02d",
                                     0, 0, finalDurationInt / 60, finalDurationInt % 60);
                             holder.timeTxt.setText(timeText);
+                            mIsPaused = false;
                         } else if (mPlayingRecording != null && mMediaPlayer != null) {
                             // this is currently playing / paused
                             mMediaPlayer.seekTo((int) holder.playProgress.getValue());
                             if (mMediaPlayer.isPlaying()) {
+                                mIsPaused = true;
                                 mMediaPlayer.pause();
                                 holder.playButton.setImageResource(R.drawable.baseline_play_arrow_24);
                                 return;
                             }
+                            mIsPaused = false;
                             mMediaPlayer.start();
                             holder.playButton.setImageResource(R.drawable.baseline_pause_24);
                             return;
                         }
                         // play this file
+                        mIsPaused = false;
                         mPlayingRecording = file;
                         mPlayingHolder = holder;
                         mMediaPlayer = MediaPlayer.create(requireActivity(), Uri.fromFile(file));
@@ -608,6 +614,7 @@ public class FirstFragment extends Fragment {
                         public void onStartTrackingTouch(@NonNull Slider slider) {
                             if (mMediaPlayer == null || mPlayingRecording != file || !mMediaPlayer.isPlaying())
                                 return;
+                            if (mIsPaused) return;
                             mMediaPlayer.pause();
                             mAnimateSliderTask.stop();
                             mAnimateSliderTask = null;
@@ -617,6 +624,7 @@ public class FirstFragment extends Fragment {
                         public void onStopTrackingTouch(@NonNull Slider slider) {
                             if (mMediaPlayer == null || mPlayingRecording != file || mMediaPlayer.isPlaying())
                                 return;
+                            if (mIsPaused) return;
                             mMediaPlayer.start();
                             if (mAnimateSliderTask != null) return;
                             mAnimateSliderTask = new AnimateSliderTask(mPlayingRecording, holder.playProgress,
