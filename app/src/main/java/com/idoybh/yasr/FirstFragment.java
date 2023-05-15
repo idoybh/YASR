@@ -34,7 +34,6 @@ import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -87,11 +86,13 @@ public class FirstFragment extends Fragment {
     private static final long MB = 1000000;
     private static final long KB = 1000;
 
+    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
     private int mSortSelection = ListView.INVALID_POSITION;
     private boolean mReverseSort = false;
+    private boolean mDidCreate = false;
     private volatile boolean mWaitingForResults = false;
 
     // to save animation calculations and do only once
@@ -122,30 +123,38 @@ public class FirstFragment extends Fragment {
         ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
         ACTION_FAB_HEIGHT *= 10; // more bounce
 
-        List<File> recordings = new ArrayList<>();
-        File fileDir = requireContext().getFilesDir();
-        File[] files = fileDir.listFiles();
-        if (files == null) return;
-        for (File file : files) {
-            if (file.isDirectory()) continue;
-            final String fileName = file.getName();
-            final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
-            final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-            if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
-                recordings.add(file);
+        mDidCreate = true;
+        new Thread(() -> {
+            mUiHandler.post(() -> setSortProgressRunning(true));
+            List<File> recordings = new ArrayList<>();
+            File fileDir = requireContext().getFilesDir();
+            File[] files = fileDir.listFiles();
+            if (files == null) return;
+            for (File file : files) {
+                if (file.isDirectory()) continue;
+                final String fileName = file.getName();
+                final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
+                    recordings.add(file);
+                }
             }
-        }
-        LinearLayoutManager manager = new LinearLayoutManager(requireContext());
-        manager.setOrientation(LinearLayoutManager.VERTICAL);
-        binding.recycler.setLayoutManager(manager);
-        mAdapter = new RecyclerAdapter(recordings);
-        mAdapter.setOnCheckedListener((selectedFiles) -> {
-            final boolean selectionEmpty = selectedFiles.isEmpty();
-            animateMultiFab(!selectionEmpty);
-            binding.fabSelection.setImageResource(mAdapter.isFullySelected()
-                    ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
-        });
-        binding.recycler.setAdapter(mAdapter);
+            LinearLayoutManager manager = new LinearLayoutManager(requireContext());
+            manager.setOrientation(LinearLayoutManager.VERTICAL);
+            mUiHandler.removeCallbacksAndMessages(null);
+            mUiHandler.post(() -> {
+                binding.recycler.setLayoutManager(manager);
+                mAdapter = new RecyclerAdapter(recordings);
+                mAdapter.setOnCheckedListener((selectedFiles) -> {
+                    final boolean selectionEmpty = selectedFiles.isEmpty();
+                    animateMultiFab(!selectionEmpty);
+                    binding.fabSelection.setImageResource(mAdapter.isFullySelected()
+                            ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
+                });
+                binding.recycler.setAdapter(mAdapter);
+                setSortProgressRunning(false);
+            });
+        }).start();
 
         // sort and filter
         binding.filterText.setOnFocusChangeListener((v, hasFocus) -> {
@@ -168,6 +177,7 @@ public class FirstFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
+                if (mAdapter == null) return;
                 if (s == null || s.toString().isEmpty()) {
                     mAdapter.filter(null);
                     return;
@@ -263,6 +273,41 @@ public class FirstFragment extends Fragment {
         ArrayAdapter<String> menuAdapter = new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
         binding.sortMenu.setAdapter(menuAdapter);
+
+        if (mDidCreate) {
+            mDidCreate = false;
+            return;
+        }
+        new Thread(() -> {
+            File fileDir = requireContext().getFilesDir();
+            File[] files = fileDir.listFiles();
+            if (files == null) return;
+            if (files.length == mAdapter.mRecordings.size()) return;
+            mUiHandler.post(() -> setSortProgressRunning(true));
+            int added = 0;
+            for (File file : files) {
+                if (file.isDirectory()) continue;
+                if (mAdapter.mRecordings.contains(file)) continue;
+                final String fileName = file.getName();
+                final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
+                    mAdapter.mRecordings.add(file);
+                    added++;
+                }
+            }
+            final int addedFinal = added;
+            mUiHandler.removeCallbacksAndMessages(null);
+            mUiHandler.post(() -> {
+                if (addedFinal == 0) {
+                    setSortProgressRunning(false);
+                    return;
+                }
+                mAdapter.notifyItemRangeChanged(
+                        mAdapter.mRecordings.size() - addedFinal - 1, addedFinal);
+                setSortProgressRunning(false);
+            });
+        }).start();
     }
 
     @Override
