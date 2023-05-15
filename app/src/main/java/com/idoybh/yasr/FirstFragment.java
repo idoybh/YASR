@@ -22,6 +22,7 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaMetadataRetriever;
@@ -143,6 +144,7 @@ public class FirstFragment extends Fragment {
             manager.setOrientation(LinearLayoutManager.VERTICAL);
             mUiHandler.removeCallbacksAndMessages(null);
             mUiHandler.post(() -> {
+                if (binding == null) return;
                 binding.recycler.setLayoutManager(manager);
                 mAdapter = new RecyclerAdapter(recordings);
                 mAdapter.setOnCheckedListener((selectedFiles) -> {
@@ -312,7 +314,7 @@ public class FirstFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        if (mAdapter.mFilterHT != null && mAdapter.mFilterHT.isAlive()) {
+        if (mAdapter != null && mAdapter.mFilterHT != null && mAdapter.mFilterHT.isAlive()) {
             mAdapter.mFilterHT.quitSafely();
             mAdapter.mFilterHT = null;
         }
@@ -896,7 +898,12 @@ public class FirstFragment extends Fragment {
         if (num > 0) {
             msg = String.format(getString(R.string.are_you_sure_msg_mul), num) + msg;
         }
-        (new MaterialAlertDialogBuilder(requireContext())
+        displayAreYouSureDialog(requireContext(), msg, listener);
+    }
+
+    public static void displayAreYouSureDialog(Context context, String msg,
+                                               DialogInterface.OnClickListener listener) {
+        (new MaterialAlertDialogBuilder(context)
                 .setMessage(msg)
                 .setPositiveButton(R.string.button_yes, listener)
                 .setNegativeButton(R.string.button_no, (dialog, which) -> {})

@@ -18,6 +18,7 @@ package com.idoybh.yasr;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -136,6 +137,7 @@ public class RecordFragment extends Fragment {
         refreshDefaultName();
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
+        binding.discardButton.setOnClickListener(this::onDiscardClicked);
         binding.outputToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
@@ -357,6 +359,17 @@ public class RecordFragment extends Fragment {
         binding.progressBar.setVisibility(View.INVISIBLE);
     }
 
+    public void onDiscardClicked(View view) {
+        DialogInterface.OnClickListener listener = (dialog, which) -> {
+            if (isStarted) mService.eraseRecording();
+            else mRawService.eraseRecording();
+            onSaveClicked(view);
+        };
+        Context ctx = requireContext();
+        FirstFragment.displayAreYouSureDialog(
+                ctx, ctx.getString(R.string.are_you_sure_msg), listener);
+    }
+
     private void setLimitMode(final int mode) {
         mLimitMode = mode;
         final float upperLimit = mode == LIMIT_MODE_TIME ? 300f : 20000f;
@@ -473,6 +486,8 @@ public class RecordFragment extends Fragment {
     private void showSaveButton(final boolean show) {
         binding.saveButton.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
         binding.saveButton.setClickable(show);
+        binding.discardButton.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
+        binding.discardButton.setClickable(show);
     }
 
     private void enableOptionViews(final boolean enable) {
@@ -631,7 +646,7 @@ public class RecordFragment extends Fragment {
                 case RecordingService.Status.PAUSED:
                     binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
                     binding.progressBar.setVisibility(View.INVISIBLE);
-                    showSaveButton(false);
+                    showSaveButton(true);
                     enableOptionViews(false);
                     registerToDuration(false);
                     setBackEnabled(false);

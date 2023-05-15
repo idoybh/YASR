@@ -25,6 +25,7 @@
     <string name="start_recording">Start recording</string>
     <string name="recording_settings">recording settings</string>
     <string name="save_recording">save recording</string>
+    <string name="discard_recording">discard recording</string>
     <string name="text_name_label">File name</string>
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
@@ -48,7 +49,7 @@
     <string name="unit_mb">MB</string>
     <string name="unit_kb">kB</string>
     <string name="unit_seconds">s</string>
-    <string name="info_txt" formatted="false">Sampling rate: %.1f kHz | Depth: %d bit | %s</string>
+    <string name="info_txt" formatted="false">Sample rate: %.1f kHz | Depth: %d bit | Encoder: %s</string>
     <string name="info_txt_lossy">Lossy</string>
     <string name="info_txt_lossless">Lossless</string>
     <string name="permission_dialog_msg">The app needs the notification, files and microphone permissions to function properly</string>

@@ -132,6 +132,22 @@ public class RawRecordingService extends RecordingService {
     }
 
     @Override
+    public synchronized void eraseRecording() {
+        if (mRecorder != null) {
+            mRecorder.stop();
+            mRecorder.release();
+            mRecorder = null;
+            mRecodingThread.quit();
+            mRecodingThread = null;
+        }
+        if (tmpFile != null && tmpFile.delete()) {
+            updateListeners(Status.IDLE);
+            return;
+        }
+        updateListeners(Status.FAILED);
+    }
+
+    @Override
     public synchronized void stopRecording() {
         if (mRecorder != null) {
             mRecorder.stop();

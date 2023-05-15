@@ -170,8 +170,22 @@ public class RecordingService extends Service {
         updateListeners(Status.STARTED);
     }
 
+    public synchronized void eraseRecording() {
+        if (mRecorder != null) {
+            if (mStatus == Status.PAUSED)
+                mRecorder.resume();
+            mRecorder.stop();
+            mRecorder.release();
+            mRecorder = null;
+        }
+        mOptions.getFile().delete();
+        updateListeners(Status.IDLE);
+    }
+
     public synchronized void stopRecording() {
         if (mRecorder != null) {
+            if (mStatus == Status.PAUSED)
+                mRecorder.resume();
             mRecorder.stop();
             mRecorder.release();
             mRecorder = null;
@@ -243,7 +257,7 @@ public class RecordingService extends Service {
 
     @SuppressLint("ApplySharedPref")
     private synchronized void updateListeners(final int status, final int extra) {
-        if (status == Status.IDLE) {
+        if (status != Status.STARTED && status != Status.PAUSED) {
             getPrefs().edit().remove(PREF_STARTED).commit();
             updateWakelock(false);
         } else {
