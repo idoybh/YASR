@@ -21,3 +21,5 @@ gradle/native/
 gradle/wrapper/dists/
 .idea/deploymentTargetDropDown.xml
 app/google-services.json
+app/debug/
+app/release/

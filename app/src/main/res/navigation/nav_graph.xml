@@ -27,7 +27,11 @@
 
         <action
             android:id="@+id/action_FirstFragment_to_RecordFragment"
-            app:destination="@id/RecordFragment"/>
+            app:destination="@id/RecordFragment"
+            app:enterAnim="@anim/slide_in"
+            app:exitAnim="@anim/slide_out"
+            app:popEnterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out" />
     </fragment>
     <fragment
         android:id="@+id/RecordFragment"
@@ -37,7 +41,11 @@
 
         <action
             android:id="@+id/action_RecordFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment"/>
+            app:destination="@id/FirstFragment"
+            app:enterAnim="@anim/slide_in"
+            app:exitAnim="@anim/slide_out"
+            app:popEnterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out" />
     </fragment>
 
     <fragment
@@ -46,5 +54,9 @@
 
     <action
         android:id="@+id/open_settings_fragment"
-        app:destination="@id/settingsFragment"/>
+        app:destination="@id/settingsFragment"
+        app:enterAnim="@anim/slide_in"
+        app:exitAnim="@anim/slide_out"
+        app:popEnterAnim="@anim/slide_in"
+        app:popExitAnim="@anim/slide_out" />
 </navigation>
