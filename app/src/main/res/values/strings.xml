@@ -61,4 +61,8 @@
     <string name="mic_in_use">Microphone is currently in use by a different app</string>
     <string name="input_filter_hint">Filter</string>
     <string name="input_sort_hint">Sort by</string>
+
+    <!-- Preferences -->
+    <string name="ui_mode_title">App Theme</string>
+    <string name="sort_mode_title">Automatically sort by</string>
 </resources>

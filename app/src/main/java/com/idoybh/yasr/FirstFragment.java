@@ -25,6 +25,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -51,6 +52,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -78,6 +80,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class FirstFragment extends Fragment {
+    private static final String PREF_SORT = "last_sort";
     private static final int CREATE_FILE_CODE = 0x01;
     private static final int SORT_BY_NAME = 0;
     private static final int SORT_BY_DATE = 1;
@@ -89,10 +92,13 @@ public class FirstFragment extends Fragment {
     private static final long KB = 1000;
 
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
+    private SharedPreferences mDefaultPrefs;
+    private SharedPreferences mSharedPrefs;
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
     private int mSortSelection = ListView.INVALID_POSITION;
+    private boolean mRememberSort = true;
     private boolean mReverseSort = false;
     private boolean mDidCreate = false;
     private volatile boolean mWaitingForResults = false;
@@ -200,6 +206,7 @@ public class FirstFragment extends Fragment {
         binding.sortMenu.setOnItemClickListener((parent, view1, position1, id) -> {
             mSortSelection = position1;
             mAdapter.sortBy(position1);
+            if (mRememberSort) getPrefs().edit().putInt(PREF_SORT, position1).apply();
         });
         binding.sortButton.setOnClickListener(v -> {
             mReverseSort = !mReverseSort;
@@ -277,40 +284,66 @@ public class FirstFragment extends Fragment {
                 requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
         binding.sortMenu.setAdapter(menuAdapter);
 
-        if (mDidCreate) {
-            mDidCreate = false;
-            return;
-        }
-        new Thread(() -> {
-            File fileDir = requireContext().getFilesDir();
-            File[] files = fileDir.listFiles();
-            if (files == null) return;
-            if (files.length == mAdapter.mRecordings.size()) return;
-            mUiHandler.post(() -> setSortProgressRunning(true));
-            int added = 0;
-            for (File file : files) {
-                if (file.isDirectory()) continue;
-                if (mAdapter.mRecordings.contains(file)) continue;
-                final String fileName = file.getName();
-                final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
-                final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
-                    mAdapter.mRecordings.add(file);
-                    added++;
+        if (!mDidCreate) { // no need if we just re-created the view
+            new Thread(() -> {
+                File fileDir = requireContext().getFilesDir();
+                File[] files = fileDir.listFiles();
+                if (files == null) return;
+                if (files.length == mAdapter.mRecordings.size()) return;
+                mUiHandler.post(() -> setSortProgressRunning(true));
+                int added = 0;
+                for (File file : files) {
+                    if (file.isDirectory()) continue;
+                    if (mAdapter.mRecordings.contains(file)) continue;
+                    final String fileName = file.getName();
+                    final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
+                    final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                    if (mime != null && (mime.contains("audio") || mime.contains("video"))) {
+                        mAdapter.mRecordings.add(file);
+                        added++;
+                    }
                 }
-            }
-            final int addedFinal = added;
-            mUiHandler.removeCallbacksAndMessages(null);
-            mUiHandler.post(() -> {
-                if (addedFinal == 0) {
+                final int addedFinal = added;
+                mUiHandler.removeCallbacksAndMessages(null);
+                mUiHandler.post(() -> {
+                    if (addedFinal == 0) {
+                        setSortProgressRunning(false);
+                        return;
+                    }
+                    mAdapter.notifyItemRangeChanged(
+                            mAdapter.mRecordings.size() - addedFinal - 1, addedFinal);
                     setSortProgressRunning(false);
-                    return;
-                }
-                mAdapter.notifyItemRangeChanged(
-                        mAdapter.mRecordings.size() - addedFinal - 1, addedFinal);
-                setSortProgressRunning(false);
-            });
-        }).start();
+                });
+            }).start();
+        } else {
+            mDidCreate = false;
+        }
+
+        // loading user prefs
+        mDefaultPrefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+        final int defaultSorting = Integer.parseInt(
+                mDefaultPrefs.getString(SettingsFragment.SORT_KEY, "1"));
+        mRememberSort = defaultSorting == 1;
+        int sortMode;
+        switch (defaultSorting) {
+            case 0: // disabled
+                return;
+            case 1: // remember last
+                sortMode = getPrefs().getInt(PREF_SORT, ListView.INVALID_POSITION);
+                break;
+            default: // name, date, duration, size and type - ordered
+                sortMode = defaultSorting - 2;
+                break;
+        }
+        mSortSelection = sortMode;
+        if (sortMode == ListView.INVALID_POSITION) return;
+        // so it's synced with the adapter init onCreate
+        // consider just making a synchronized block around a lock object
+        mUiHandler.post(() -> {
+            if (binding == null || mAdapter == null) return;
+            binding.sortMenu.setText(sorts[sortMode], false);
+            mAdapter.sortBy(sortMode);
+        });
     }
 
     @Override
@@ -921,5 +954,12 @@ public class FirstFragment extends Fragment {
         binding.sortIndicator.setIndeterminate(running);
         if (!running) return;
         binding.sortIndicator.bringToFront();
+    }
+
+    private SharedPreferences getPrefs() {
+        if (mSharedPrefs != null) return mSharedPrefs;
+        mSharedPrefs = requireContext().getSharedPreferences(
+                RecordFragment.SHARED_PREF_FILE, Context.MODE_PRIVATE);
+        return mSharedPrefs;
     }
 }

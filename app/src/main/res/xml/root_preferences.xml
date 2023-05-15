@@ -5,6 +5,14 @@
         android:entries="@array/ui_mode_entries"
         android:entryValues="@array/ui_mode_values"
         android:key="ui_mode"
-        android:title="App Theme"
+        android:title="@string/ui_mode_title"
         app:icon="@drawable/baseline_dark_mode_24" />
+
+    <ListPreference
+        android:defaultValue="1"
+        android:entries="@array/sort_mode_entries"
+        android:entryValues="@array/sort_mode_values"
+        android:key="sort_mode"
+        android:title="@string/sort_mode_title"
+        app:icon="@drawable/baseline_filter_list_24" />
 </PreferenceScreen>

@@ -7,6 +7,7 @@
         <item>Type</item>
     </string-array>
 
+    <!-- pref page -->
     <string-array name="ui_mode_entries">
         <item>Light</item>
         <item>Dark</item>
@@ -17,5 +18,25 @@
         <item>0</item>
         <item>1</item>
         <item>2</item>
+    </string-array>
+
+    <string-array name="sort_mode_entries">
+        <item>Disabled</item>
+        <item>Last used</item>
+        <item>Name</item>
+        <item>Date</item>
+        <item>Duration</item>
+        <item>Size</item>
+        <item>Type</item>
+    </string-array>
+
+    <string-array name="sort_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
     </string-array>
 </resources>
