@@ -547,7 +547,7 @@ public class FirstFragment extends Fragment {
                 final long finalDuration = duration;
                 final int finalDurationInt = Math.round((float) duration / 1000);
 
-                requireActivity().runOnUiThread(() -> {
+                mUiHandler.post(() -> {
                     holder.createTimeTxt.setText(sdf.format(lastModified.getTime()));
                     holder.timeTxt.setText(finalTimeStr);
                     holder.sizeTxt.setText(finalSizeText);
@@ -633,7 +633,7 @@ public class FirstFragment extends Fragment {
                         }
                     });
                     holder.loadingIndicator.setIndeterminate(false);
-                }); // </runOnUiThread>
+                }); // </mUiHandler.post()>
             }).start(); // </new Thread()>
 
             // actions
@@ -845,7 +845,6 @@ public class FirstFragment extends Fragment {
             }
         }
 
-        @SuppressLint("NotifyDataSetChanged")
         public void sortBy(final int sort) {
             setSortProgressRunning(true);
             new Thread(() -> {
@@ -888,8 +887,7 @@ public class FirstFragment extends Fragment {
                     });
                 }
                 requireActivity().runOnUiThread(() -> {
-                    clearSelection();
-                    notifyDataSetChanged();
+                    restart();
                     setSortProgressRunning(false);
                 });
             }).start();
@@ -898,7 +896,6 @@ public class FirstFragment extends Fragment {
         private HandlerThread mFilterHT;
         private Handler mFilterHandler;
         private Handler mFilterUIHandler;
-        @SuppressLint("NotifyDataSetChanged")
         public void filter(final String filter) {
             if (mFilterHT == null) {
                 mFilterHT = new HandlerThread("Filter HandlerThread");
@@ -926,11 +923,22 @@ public class FirstFragment extends Fragment {
                         mSortSelection = ListView.INVALID_POSITION;
                         binding.sortMenu.setText("");
                     }
-                    clearSelection();
-                    notifyDataSetChanged();
+                    restart();
                     setSortProgressRunning(false);
                 });
             });
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        private void restart() {
+            clearSelection();
+            binding.recycler.setAdapter(null);
+            binding.recycler.setLayoutManager(null);
+            binding.recycler.setAdapter(this);
+            LinearLayoutManager manager = new LinearLayoutManager(requireContext());
+            manager.setOrientation(LinearLayoutManager.VERTICAL);
+            binding.recycler.setLayoutManager(manager);
+            notifyDataSetChanged();
         }
     }
 
