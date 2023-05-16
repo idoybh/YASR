@@ -13,347 +13,362 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".RecordFragment">
+    android:fillViewport="true">
 
-    <ImageButton
-        android:src="@drawable/baseline_mic_24"
-        android:layout_width="95dp"
-        android:layout_height="81dp"
-        android:layout_marginBottom="24dp"
-        android:id="@+id/recordButton"
-        android:background="@drawable/circle_button"
-        android:colorControlHighlight="@android:color/white"
-        android:contentDescription="@string/start_recording"
-        android:scaleType="fitCenter"
-        android:padding="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
-
-    <ImageButton
-        android:id="@+id/saveButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginBottom="42dp"
-        android:background="@drawable/circle_button"
-        android:colorControlHighlight="@android:color/white"
-        android:contentDescription="@string/save_recording"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/baseline_save_24"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/recordButton" />
-
-    <ImageButton
-        android:id="@+id/discardButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="42dp"
-        android:background="@drawable/circle_button"
-        android:colorControlHighlight="@android:color/white"
-        android:contentDescription="@string/discard_recording"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/baseline_delete_forever_24"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/recordButton" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/recordingNameInput"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="16dp"
-        android:hint="@string/text_name_label"
-        android:textColorHint="?colorPrimary"
-        app:boxStrokeColor="?colorPrimary"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/recordingNameInputText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/deviceMenuContainer"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:hint="@string/audio_device"
-        android:textColorHint="?colorPrimary"
-        app:boxStrokeColor="?colorPrimary"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/recordingNameInput">
+        android:layout_height="match_parent"
+        tools:context=".RecordFragment">
 
-        <AutoCompleteTextView
-            android:id="@+id/deviceMenu"
+        <ImageButton
+            android:id="@+id/recordButton"
+            android:layout_width="95dp"
+            android:layout_height="81dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/circle_button"
+            android:colorControlHighlight="@android:color/white"
+            android:contentDescription="@string/start_recording"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/baseline_mic_24"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <ImageButton
+            android:id="@+id/saveButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginBottom="42dp"
+            android:background="@drawable/circle_button"
+            android:colorControlHighlight="@android:color/white"
+            android:contentDescription="@string/save_recording"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/baseline_save_24"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/recordButton" />
+
+        <ImageButton
+            android:id="@+id/discardButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="42dp"
+            android:background="@drawable/circle_button"
+            android:colorControlHighlight="@android:color/white"
+            android:contentDescription="@string/discard_recording"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/baseline_delete_forever_24"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/recordButton" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/recordingNameInput"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginEnd="16dp"
+            android:hint="@string/text_name_label"
+            android:textColorHint="?colorPrimary"
+            app:boxStrokeColor="?colorPrimary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/recordingNameInputText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/deviceMenuContainer"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:hint="@string/audio_device"
+            android:textColorHint="?colorPrimary"
+            app:boxStrokeColor="?colorPrimary"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/recordingNameInput">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <AutoCompleteTextView
+                android:id="@+id/deviceMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
 
-    <TextView
-        android:id="@+id/outputTxt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/output_txt"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/deviceMenuContainer" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/outputToggle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="2dp"
-        app:checkedButton="@id/outputBtnOGG"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/outputTxt"
-        app:selectionRequired="true"
-        app:singleSelection="true">
-
-        <Button
-            android:id="@+id/outputBtnOGG"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
+        <TextView
+            android:id="@+id/outputTxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/out_selector_ogg" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/output_txt"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/deviceMenuContainer" />
 
-        <Button
-            android:id="@+id/outputBtnMP4"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/outputToggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/out_selector_m4a" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            app:checkedButton="@id/outputBtnOGG"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/outputTxt"
+            app:selectionRequired="true"
+            app:singleSelection="true">
 
-        <Button
-            android:id="@+id/outputBtnWAV"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
+            <Button
+                android:id="@+id/outputBtnOGG"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/out_selector_ogg" />
+
+            <Button
+                android:id="@+id/outputBtnMP4"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/out_selector_m4a" />
+
+            <Button
+                android:id="@+id/outputBtnWAV"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/out_selector_wav" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <TextView
+            android:id="@+id/qualityTxt"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:text="@string/quality_txt"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/deviceMenuContainer" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/qualityToggle"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="16dp"
+            app:checkedButton="@id/qualityBtnHigh"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/qualityTxt"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <Button
+                android:id="@+id/qualityBtnHigh"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/hd" />
+
+            <Button
+                android:id="@+id/qualityBtnStandard"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sd" />
+
+            <Button
+                android:id="@+id/qualityBtnLow"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ld" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <TextView
+            android:id="@+id/chanelTxt"
+            android:layout_width="106dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:text="@string/channels_txt"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/qualityToggle" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/channelToggle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="16dp"
+            app:checkedButton="@id/channelBtn2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/chanelTxt"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <Button
+                android:id="@+id/channelBtn2"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stereo" />
+
+            <Button
+                android:id="@+id/channelBtn1"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/mono" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <TextView
+            android:id="@+id/limitTxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/out_selector_wav" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/limit_txt"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/outputToggle" />
 
-    <TextView
-        android:id="@+id/qualityTxt"
-        android:layout_width="160dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="@string/quality_txt"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/deviceMenuContainer" />
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/limitToggle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            app:checkedButton="@id/limitBtnSize"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/limitTxt"
+            app:selectionRequired="true"
+            app:singleSelection="true">
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/qualityToggle"
-        android:layout_width="160dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="16dp"
-        app:checkedButton="@id/qualityBtnHigh"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/qualityTxt"
-        app:selectionRequired="true"
-        app:singleSelection="true">
+            <Button
+                android:id="@+id/limitBtnSize"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/baseline_disc_full_24"
+                app:iconPadding="0dp"
+                app:iconSize="23dp" />
 
-        <Button
-            android:id="@+id/qualityBtnHigh"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
+            <Button
+                android:id="@+id/limitBtnTime"
+                style="@style/Widget.App.Button.OutlinedButton.Selector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/baseline_access_time_filled_24"
+                app:iconPadding="0dp"
+                app:iconSize="23dp" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/limitSlider"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:stepSize="10.0"
+            android:valueFrom="0.0"
+            android:valueTo="1000.0"
+            app:labelBehavior="visible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/limitToggle" />
+
+        <TextView
+            android:id="@+id/infoTxt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/hd" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/limitSlider" />
 
-        <Button
-            android:id="@+id/qualityBtnStandard"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/audioBar"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/infoTxt" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/audioBar"
+            android:layout_width="0dp"
+            android:layout_height="31dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:indeterminate="false"
+            android:max="500"
+            android:paddingVertical="16dp"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@+id/progressBar"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/micImage" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressBar"
+            android:layout_width="0dp"
+            android:layout_height="31dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="16dp"
+            android:paddingVertical="16dp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toTopOf="@+id/recordButton"
+            app:layout_constraintEnd_toStartOf="@+id/timeText"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/timeText"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/sd" />
+            android:layout_height="36dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="serif-monospace"
+            android:gravity="center"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toTopOf="@+id/recordButton"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <Button
-            android:id="@+id/qualityBtnLow"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/ld" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
+        <ImageView
+            android:id="@+id/micImage"
+            android:layout_width="24dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="16dp"
+            android:src="@drawable/baseline_mic_24"
+            app:layout_constraintBottom_toTopOf="@+id/progressBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:tint="?android:attr/colorControlNormal" />
 
-    <TextView
-        android:id="@+id/chanelTxt"
-        android:layout_width="106dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="@string/channels_txt"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/qualityToggle" />
-
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/channelToggle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="16dp"
-        app:checkedButton="@id/channelBtn2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chanelTxt"
-        app:selectionRequired="true"
-        app:singleSelection="true">
-
-        <Button
-            android:id="@+id/channelBtn2"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/stereo" />
-
-        <Button
-            android:id="@+id/channelBtn1"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mono" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
-
-    <TextView
-        android:id="@+id/limitTxt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/limit_txt"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/outputToggle" />
-
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/limitToggle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="2dp"
-        app:checkedButton="@id/limitBtnSize"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/limitTxt"
-        app:selectionRequired="true"
-        app:singleSelection="true">
-
-        <Button
-            android:id="@+id/limitBtnSize"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/baseline_disc_full_24"
-            app:iconPadding="0dp"
-            app:iconSize="23dp" />
-
-        <Button
-            android:id="@+id/limitBtnTime"
-            style="@style/Widget.App.Button.OutlinedButton.Selector"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/baseline_access_time_filled_24"
-            app:iconPadding="0dp"
-            app:iconSize="23dp" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
-
-    <com.google.android.material.slider.Slider
-        android:id="@+id/limitSlider"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:stepSize="10.0"
-        android:valueFrom="0.0"
-        android:valueTo="1000.0"
-        app:labelBehavior="visible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/limitToggle" />
-
-    <TextView
-        android:id="@+id/infoTxt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/limitSlider" />
-
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/audioBar"
-        android:layout_width="0dp"
-        android:layout_height="31dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:indeterminate="false"
-        android:max="500"
-        android:paddingVertical="16dp"
-        android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/progressBar"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/micImage" />
-
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/progressBar"
-        android:layout_width="0dp"
-        android:layout_height="31dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="16dp"
-        android:paddingVertical="16dp"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toTopOf="@+id/recordButton"
-        app:layout_constraintEnd_toStartOf="@+id/timeText"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <TextView
-        android:id="@+id/timeText"
-        android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:fontFamily="serif-monospace"
-        android:gravity="center"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toTopOf="@+id/recordButton"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <ImageView
-        android:id="@+id/micImage"
-        android:layout_width="24dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        android:src="@drawable/baseline_mic_24"
-        app:tint="?android:attr/colorControlNormal"
-        app:layout_constraintBottom_toTopOf="@+id/progressBar"
-        app:layout_constraintStart_toStartOf="parent" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>
