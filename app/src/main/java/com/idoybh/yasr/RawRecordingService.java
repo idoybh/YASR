@@ -99,7 +99,7 @@ public class RawRecordingService extends RecordingService {
                     written += read;
                     if (limit == null) continue;
                     if (limit[0] == RecordFragment.LIMIT_MODE_TIME &&
-                            getDuration() / 1000 > limit[1]) {
+                            getDuration() / 1000 >= limit[1]) {
                         // time limit reached
                         stopRecording();
                         break;

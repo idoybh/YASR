@@ -28,7 +28,9 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -67,6 +69,7 @@ public class RecordFragment extends Fragment {
     public static final int LIMIT_MODE_SIZE = 0;
     public static final int LIMIT_MODE_TIME = 1;
 
+    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
     private FragmentRecordBinding binding;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
@@ -622,36 +625,39 @@ public class RecordFragment extends Fragment {
     private class StatusListener implements RecordingService.StatusListener {
         @Override
         public void onStatusChanged(int status, int extra) {
-            switch (status) {
-                case RecordingService.Status.FAILED:
-                case RecordingService.Status.MAX_REACHED:
-                case RecordingService.Status.IDLE:
-                    binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
-                    binding.progressBar.setVisibility(View.INVISIBLE);
-                    binding.timeText.setText("");
-                    showSaveButton(false);
-                    enableOptionViews(true);
-                    registerToDuration(false);
-                    refreshDefaultName();
-                    setBackEnabled(true);
-                    break;
-                case RecordingService.Status.STARTED:
-                    binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
-                    binding.progressBar.setVisibility(View.VISIBLE);
-                    showSaveButton(true);
-                    enableOptionViews(false);
-                    registerToDuration(true);
-                    setBackEnabled(false);
-                    break;
-                case RecordingService.Status.PAUSED:
-                    binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
-                    binding.progressBar.setVisibility(View.INVISIBLE);
-                    showSaveButton(true);
-                    enableOptionViews(false);
-                    registerToDuration(false);
-                    setBackEnabled(false);
-                    break;
-            }
+            mUiHandler.removeCallbacksAndMessages(null);
+            mUiHandler.post(() -> {
+                switch (status) {
+                    case RecordingService.Status.FAILED, RecordingService.Status.MAX_REACHED,
+                            RecordingService.Status.IDLE -> {
+                        binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
+                        binding.progressBar.setVisibility(View.INVISIBLE);
+                        binding.timeText.setText("");
+                        showSaveButton(false);
+                        enableOptionViews(true);
+                        registerToDuration(false);
+                        refreshDefaultName();
+                        setBackEnabled(true);
+                    }
+                    case RecordingService.Status.STARTED -> {
+                        binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
+                        binding.progressBar.setVisibility(View.VISIBLE);
+                        showSaveButton(true);
+                        enableOptionViews(false);
+                        registerToDuration(true);
+                        setBackEnabled(false);
+                    }
+                    case RecordingService.Status.PAUSED -> {
+                        binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
+                        if (mLimitMode != LIMIT_MODE_TIME)
+                            binding.progressBar.setVisibility(View.INVISIBLE);
+                        showSaveButton(true);
+                        enableOptionViews(false);
+                        registerToDuration(false);
+                        setBackEnabled(false);
+                    }
+                }
+            });
         }
     }
 
@@ -686,15 +692,15 @@ public class RecordFragment extends Fragment {
                         "%02d", Integer.valueOf(totalStr.replace("s", "")));
             text += "/" + totalStr;
             final int finalSec = (int) sec;
-            requireActivity().runOnUiThread(() ->
+            mUiHandler.post(() ->
                     binding.progressBar.setProgress((int) finalSec, true));
         } else if (mLimitMode == LIMIT_MODE_SIZE) {
             int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
-            requireActivity().runOnUiThread(() ->
+            mUiHandler.post(() ->
                     binding.progressBar.setProgress(size, true));
         }
         final String res = text;
-        requireActivity().runOnUiThread(() ->
+        mUiHandler.post(() ->
                 binding.timeText.setText(res));
     }
 }
