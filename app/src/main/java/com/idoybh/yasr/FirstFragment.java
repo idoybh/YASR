@@ -81,6 +81,7 @@ import java.util.TimerTask;
 
 public class FirstFragment extends Fragment {
     private static final String PREF_SORT = "last_sort";
+    private static final String PREF_REVERSE_SORT = "last_reverse_sort";
     private static final int CREATE_FILE_CODE = 0x01;
     private static final int SORT_BY_NAME = 0;
     private static final int SORT_BY_DATE = 1;
@@ -210,7 +211,8 @@ public class FirstFragment extends Fragment {
         });
         binding.sortButton.setOnClickListener(v -> {
             mReverseSort = !mReverseSort;
-            v.setRotation(mReverseSort ? 0 : 180);
+            animateRotation(v, mReverseSort ? 0 : 180);
+            if (mRememberSort) getPrefs().edit().putBoolean(PREF_REVERSE_SORT, mReverseSort).apply();
             if (mSortSelection == ListView.INVALID_POSITION) return;
             mAdapter.sortBy(mSortSelection);
         });
@@ -283,6 +285,7 @@ public class FirstFragment extends Fragment {
         ArrayAdapter<String> menuAdapter = new ArrayAdapter<>(
                 requireContext(), android.R.layout.simple_dropdown_item_1line, sorts);
         binding.sortMenu.setAdapter(menuAdapter);
+        binding.filterText.setText("");
 
         if (!mDidCreate) { // no need if we just re-created the view
             new Thread(() -> {
@@ -312,6 +315,8 @@ public class FirstFragment extends Fragment {
                     }
                     mAdapter.notifyItemRangeChanged(
                             mAdapter.mRecordings.size() - addedFinal - 1, addedFinal);
+                    if (mSortSelection != ListView.INVALID_POSITION)
+                        mAdapter.sortBy(mSortSelection);
                     setSortProgressRunning(false);
                 });
             }).start();
@@ -326,21 +331,23 @@ public class FirstFragment extends Fragment {
         mRememberSort = defaultSorting == 1;
         int sortMode;
         switch (defaultSorting) {
-            case 0: // disabled
+            case 0 -> { // disabled
+                mSortSelection = ListView.INVALID_POSITION;
                 return;
-            case 1: // remember last
-                sortMode = getPrefs().getInt(PREF_SORT, ListView.INVALID_POSITION);
-                break;
-            default: // name, date, duration, size and type - ordered
-                sortMode = defaultSorting - 2;
-                break;
+            }
+            case 1 -> // remember last
+                    sortMode = getPrefs().getInt(PREF_SORT, ListView.INVALID_POSITION);
+            default -> // name, date, duration, size and type - ordered
+                    sortMode = defaultSorting - 2;
         }
         mSortSelection = sortMode;
         if (sortMode == ListView.INVALID_POSITION) return;
+        mReverseSort = getPrefs().getBoolean(PREF_REVERSE_SORT, false);
         // so it's synced with the adapter init onCreate
         // consider just making a synchronized block around a lock object
         mUiHandler.post(() -> {
             if (binding == null || mAdapter == null) return;
+            binding.sortButton.setRotation(mReverseSort ? 0 : 180);
             binding.sortMenu.setText(sorts[sortMode], false);
             mAdapter.sortBy(sortMode);
         });
@@ -382,6 +389,16 @@ public class FirstFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void animateRotation(final View v, final int targetRotation) {
+        final ValueAnimator animator = new ValueAnimator();
+        animator.setDuration(250);
+        animator.setFloatValues(180 - targetRotation, targetRotation);
+        animator.setInterpolator(new OvershootInterpolator());
+        animator.addUpdateListener(animation ->
+                v.setRotation((float) animation.getAnimatedValue()));
+        animator.start();
     }
 
     private void animateMultiFab(final boolean in) {
@@ -904,7 +921,8 @@ public class FirstFragment extends Fragment {
                 mFilterUIHandler = new Handler(Looper.getMainLooper());
             }
             setSortProgressRunning(true);
-            mFilterHandler.post(() -> {
+            mFilterHandler.removeCallbacksAndMessages(null);
+            mFilterHandler.postAtFrontOfQueue(() -> {
                 mRecordings.clear();
                 if (filter == null || filter.isEmpty()) {
                     mRecordings.addAll(mOrigRecordings);
@@ -918,10 +936,10 @@ public class FirstFragment extends Fragment {
                     }
                 }
                 mFilterUIHandler.removeCallbacksAndMessages(null);
-                mFilterUIHandler.post(() -> {
+                mFilterUIHandler.postAtFrontOfQueue(() -> {
                     if (mSortSelection != ListView.INVALID_POSITION) {
-                        mSortSelection = ListView.INVALID_POSITION;
-                        binding.sortMenu.setText("");
+                        sortBy(mSortSelection);
+                        return; // already calls following
                     }
                     restart();
                     setSortProgressRunning(false);
