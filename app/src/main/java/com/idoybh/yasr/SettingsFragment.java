@@ -25,13 +25,6 @@ public class SettingsFragment extends PreferenceFragmentCompat
             2, UiModeManager.MODE_NIGHT_AUTO
     ));
 
-    private static final Map<Integer, Integer> UI_MODE_TO_THEME_VALUE = new HashMap<>(Map.of(
-            UiModeManager.MODE_NIGHT_NO, 0,
-            UiModeManager.MODE_NIGHT_YES, 1,
-            UiModeManager.MODE_NIGHT_AUTO, 2
-    ));
-
-    private SharedPreferences mDefaultPrefs;
     private UiModeManager mUiManager;
 
     private ListPreference mThemeListPref;
@@ -41,7 +34,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.root_preferences, rootKey);
 
-        mDefaultPrefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
         mUiManager = (UiModeManager) requireContext()
                 .getSystemService(Context.UI_MODE_SERVICE);
 
@@ -51,7 +44,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
         mThemeListPref.setOnPreferenceChangeListener(this);
 
         mSortListPref = findPreference(SORT_KEY);
-        final int sortValue = Integer.parseInt(mDefaultPrefs.getString(SORT_KEY, "1"));
+        final int sortValue = Integer.parseInt(prefs.getString(SORT_KEY, "1"));
         mSortListPref.setSummary(mSortListPref.getEntries()[sortValue]);
         mSortListPref.setOnPreferenceChangeListener(this);
     }

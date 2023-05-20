@@ -496,6 +496,32 @@ public class RecordFragment extends Fragment {
         binding.discardButton.setClickable(show);
     }
 
+    private void updateRecordAndProgress(final int status) {
+        int progressVis = View.VISIBLE;
+        int recordDrawableID = R.drawable.baseline_mic_24;
+        String recordTooltip = getString(R.string.tooltip_start_recording);
+        switch (status) {
+            case RecordingService.Status.FAILED, RecordingService.Status.MAX_REACHED,
+                    RecordingService.Status.IDLE -> {
+                progressVis = View.INVISIBLE;
+            }
+            case RecordingService.Status.STARTED -> {
+                recordDrawableID = R.drawable.baseline_pause_24;
+                recordTooltip = getString(R.string.tooltip_pause_recording);
+            }
+            case RecordingService.Status.PAUSED -> {
+                recordDrawableID = R.drawable.baseline_play_arrow_24;
+                recordTooltip = getString(R.string.tooltip_resume_recording);
+                if (mLimitMode != LIMIT_MODE_TIME && binding.limitSlider.getValue() >= 1)
+                    progressVis = View.INVISIBLE;
+            }
+        }
+        binding.recordButton.setImageResource(recordDrawableID);
+        binding.recordButton.setTooltipText(recordTooltip);
+        binding.recordButton.setContentDescription(recordTooltip);
+        binding.progressBar.setVisibility(progressVis);
+    }
+
     private void enableOptionViews(final boolean enable) {
         for (View v : mOptionViews) v.setEnabled(enable);
     }
@@ -607,6 +633,7 @@ public class RecordFragment extends Fragment {
             mRecorder.setOutputFile(mTempAudioFile);
             mRecorder.prepare();
             mRecorder.start();
+            //noinspection ResultOfMethodCallIgnored
             mTempAudioFile.delete(); // delete when we stop writing to it
         } catch (IllegalStateException | IOException e) {
             e.printStackTrace();
@@ -634,27 +661,23 @@ public class RecordFragment extends Fragment {
                 switch (status) {
                     case RecordingService.Status.FAILED, RecordingService.Status.MAX_REACHED,
                             RecordingService.Status.IDLE -> {
-                        binding.recordButton.setImageResource(R.drawable.baseline_mic_24);
-                        binding.progressBar.setVisibility(View.INVISIBLE);
-                        binding.timeText.setText("");
+                        updateRecordAndProgress(status);
                         showSaveButton(false);
                         enableOptionViews(true);
                         registerToDuration(false);
                         refreshDefaultName();
                         setBackEnabled(true);
+                        binding.timeText.setText("");
                     }
                     case RecordingService.Status.STARTED -> {
-                        binding.recordButton.setImageResource(R.drawable.baseline_pause_24);
-                        binding.progressBar.setVisibility(View.VISIBLE);
+                        updateRecordAndProgress(status);
                         showSaveButton(true);
                         enableOptionViews(false);
                         registerToDuration(true);
                         setBackEnabled(false);
                     }
                     case RecordingService.Status.PAUSED -> {
-                        binding.recordButton.setImageResource(R.drawable.baseline_play_arrow_24);
-                        if (mLimitMode != LIMIT_MODE_TIME)
-                            binding.progressBar.setVisibility(View.INVISIBLE);
+                        updateRecordAndProgress(status);
                         showSaveButton(true);
                         enableOptionViews(false);
                         registerToDuration(false);
@@ -697,7 +720,7 @@ public class RecordFragment extends Fragment {
             text += "/" + totalStr;
             final int finalSec = (int) sec;
             mUiHandler.post(() ->
-                    binding.progressBar.setProgress((int) finalSec, true));
+                    binding.progressBar.setProgress(finalSec, true));
         } else if (mLimitMode == LIMIT_MODE_SIZE) {
             int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
             mUiHandler.post(() ->

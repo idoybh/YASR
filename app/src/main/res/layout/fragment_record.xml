@@ -33,10 +33,11 @@
             android:layout_marginBottom="24dp"
             android:background="@drawable/circle_button"
             android:colorControlHighlight="@android:color/white"
-            android:contentDescription="@string/start_recording"
             android:padding="12dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_mic_24"
+            android:tooltipText="@string/tooltip_start_recording"
+            android:contentDescription="@string/tooltip_start_recording"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
@@ -49,11 +50,12 @@
             android:layout_marginBottom="42dp"
             android:background="@drawable/circle_button"
             android:colorControlHighlight="@android:color/white"
-            android:contentDescription="@string/save_recording"
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_save_24"
             android:visibility="invisible"
+            android:tooltipText="@string/tooltip_save_recording"
+            android:contentDescription="@string/tooltip_save_recording"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/recordButton" />
 
@@ -65,11 +67,12 @@
             android:layout_marginBottom="42dp"
             android:background="@drawable/circle_button"
             android:colorControlHighlight="@android:color/white"
-            android:contentDescription="@string/discard_recording"
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/baseline_delete_forever_24"
             android:visibility="invisible"
+            android:tooltipText="@string/tooltip_discard_recording"
+            android:contentDescription="@string/tooltip_discard_recording"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/recordButton" />
 
@@ -91,7 +94,8 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/recordingNameInputText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                tools:ignore="TextContrastCheck" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -113,7 +117,8 @@
                 android:id="@+id/deviceMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none" />
+                android:inputType="none"
+                tools:ignore="LabelFor" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -183,7 +188,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/qualityTxt"
             app:selectionRequired="true"
-            app:singleSelection="true">
+            app:singleSelection="true"
+            tools:ignore="TextSizeCheck">
 
             <Button
                 android:id="@+id/qualityBtnHigh"
@@ -273,6 +279,8 @@
                 style="@style/Widget.App.Button.OutlinedButton.Selector"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:tooltipText="@string/tooltip_limit_size"
+                android:contentDescription="@string/tooltip_limit_size"
                 app:icon="@drawable/baseline_disc_full_24"
                 app:iconPadding="0dp"
                 app:iconSize="23dp" />
@@ -282,6 +290,8 @@
                 style="@style/Widget.App.Button.OutlinedButton.Selector"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:tooltipText="@string/tooltip_limit_time"
+                android:contentDescription="@string/tooltip_limit_time"
                 app:icon="@drawable/baseline_access_time_filled_24"
                 app:iconPadding="0dp"
                 app:iconSize="23dp" />
@@ -297,6 +307,8 @@
             android:stepSize="10.0"
             android:valueFrom="0.0"
             android:valueTo="1000.0"
+            android:tooltipText="@string/tooltip_limit"
+            android:contentDescription="@string/tooltip_limit"
             app:labelBehavior="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -330,6 +342,8 @@
             android:max="500"
             android:paddingVertical="16dp"
             android:visibility="visible"
+            android:tooltipText="@string/tooltip_input_noise"
+            android:contentDescription="@string/tooltip_input_noise"
             app:layout_constraintBottom_toTopOf="@+id/progressBar"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/micImage" />
@@ -366,6 +380,8 @@
             android:layout_marginStart="16dp"
             android:layout_marginBottom="16dp"
             android:src="@drawable/baseline_mic_24"
+            android:tooltipText="@string/tooltip_input_noise"
+            android:contentDescription="@string/tooltip_input_noise"
             app:layout_constraintBottom_toTopOf="@+id/progressBar"
             app:layout_constraintStart_toStartOf="parent"
             app:tint="?android:attr/colorControlNormal" />

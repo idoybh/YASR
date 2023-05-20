@@ -93,7 +93,6 @@ public class FirstFragment extends Fragment {
     private static final long KB = 1000;
 
     private final Handler mUiHandler = new Handler(Looper.getMainLooper());
-    private SharedPreferences mDefaultPrefs;
     private SharedPreferences mSharedPrefs;
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
@@ -160,6 +159,11 @@ public class FirstFragment extends Fragment {
                     animateMultiFab(!selectionEmpty);
                     binding.fabSelection.setImageResource(mAdapter.isFullySelected()
                             ? R.drawable.baseline_deselect_24 : R.drawable.baseline_select_all_24);
+                    final String tooltip = getString(mAdapter.isFullySelected()
+                            ? R.string.tooltip_toggle_selection_none
+                            : R.string.tooltip_toggle_selection_all);
+                    binding.fabSelection.setTooltipText(tooltip);
+                    binding.fabSelection.setContentDescription(tooltip);
                 });
                 binding.recycler.setAdapter(mAdapter);
                 setSortProgressRunning(false);
@@ -167,13 +171,6 @@ public class FirstFragment extends Fragment {
         }).start();
 
         // sort and filter
-        binding.filterText.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) return;
-            final Editable editable = ((TextInputEditText) v).getText();
-            if (editable == null) return;
-            final String filter = editable.toString();
-
-        });
         binding.filterText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -325,9 +322,9 @@ public class FirstFragment extends Fragment {
         }
 
         // loading user prefs
-        mDefaultPrefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
         final int defaultSorting = Integer.parseInt(
-                mDefaultPrefs.getString(SettingsFragment.SORT_KEY, "1"));
+                prefs.getString(SettingsFragment.SORT_KEY, "1"));
         mRememberSort = defaultSorting == 1;
         int sortMode;
         switch (defaultSorting) {

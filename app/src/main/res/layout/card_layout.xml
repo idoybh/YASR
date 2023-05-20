@@ -83,7 +83,9 @@
                     android:paddingBottom="4dp"
                     android:text="Some recording name"
                     android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:tooltipText="@string/tooltip_file_name"
+                    tools:ignore="HardcodedText" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
@@ -94,8 +96,10 @@
                 android:layout_marginEnd="9dp"
                 android:text="01/01/1970 00:00"
                 android:textSize="12sp"
+                android:tooltipText="@string/tooltip_create_time"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="HardcodedText" />
 
             <ImageButton
                 android:id="@+id/playButton"
@@ -106,6 +110,8 @@
                 android:background="@null"
                 android:scaleType="fitCenter"
                 android:src="@drawable/baseline_play_arrow_24"
+                android:tooltipText="@string/tooltip_play_pause"
+                android:contentDescription="@string/tooltip_play_pause"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/fileNameLayout"
                 app:tint="?attr/colorAccent" />
@@ -119,6 +125,7 @@
                 android:layout_marginEnd="4dp"
                 android:valueFrom="0.0"
                 android:valueTo="5000"
+                android:contentDescription="@string/play_progress_description"
                 app:labelBehavior="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/playButton"
@@ -135,6 +142,8 @@
                 android:background="@android:color/transparent"
                 android:scaleType="fitCenter"
                 android:src="@drawable/baseline_checklist_24"
+                android:tooltipText="@string/tooltip_select"
+                android:contentDescription="@string/tooltip_select"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:tint="?attr/colorAccent" />
@@ -148,6 +157,8 @@
                 android:background="@android:color/transparent"
                 android:scaleType="fitCenter"
                 android:src="@drawable/baseline_save_24"
+                android:tooltipText="@string/tooltip_save"
+                android:contentDescription="@string/tooltip_save"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/selectButton"
                 app:tint="?attr/colorAccent" />
@@ -161,6 +172,8 @@
                 android:background="@android:color/transparent"
                 android:scaleType="fitCenter"
                 android:src="@drawable/baseline_share_24"
+                android:tooltipText="@string/tooltip_share"
+                android:contentDescription="@string/tooltip_share"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/saveButton"
                 app:tint="?attr/colorAccent" />
@@ -174,6 +187,8 @@
                 android:background="@android:color/transparent"
                 android:scaleType="fitCenter"
                 android:src="@drawable/baseline_delete_forever_24"
+                android:tooltipText="@string/tooltip_delete"
+                android:contentDescription="@string/tooltip_delete"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/shareButton"
                 app:tint="?attr/colorAccent" />
@@ -185,8 +200,11 @@
                 android:layout_marginEnd="9dp"
                 android:layout_marginBottom="8dp"
                 android:text="00:00/00:00"
+                android:tooltipText="@string/tooltip_duration"
+                android:contentDescription="@string/tooltip_duration"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:ignore="HardcodedText" />
 
             <TextView
                 android:id="@+id/typeTxt"
@@ -195,8 +213,11 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginBottom="8dp"
                 android:text="3GP"
+                android:tooltipText="@string/tooltip_file_type"
+                android:contentDescription="@string/tooltip_file_type"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/deleteButton" />
+                app:layout_constraintStart_toEndOf="@+id/deleteButton"
+                tools:ignore="HardcodedText" />
 
             <TextView
                 android:id="@+id/sizeTxt"
@@ -206,7 +227,10 @@
                 android:layout_marginBottom="8dp"
                 android:text="50MB"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/typeTxt" />
+                app:layout_constraintStart_toEndOf="@+id/typeTxt"
+                android:tooltipText="@string/tooltip_file_size"
+                android:contentDescription="@string/tooltip_file_size"
+                tools:ignore="HardcodedText" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

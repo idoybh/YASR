@@ -30,6 +30,8 @@
         android:layout_margin="16dp"
         android:layout_marginBottom="24dp"
         android:visibility="invisible"
+        android:tooltipText="@string/tooltip_toggle_selection_all"
+        android:contentDescription="@string/tooltip_toggle_selection_all"
         app:borderWidth="0dp"
         app:fabCustomSize="48dp"
         app:fabSize="auto"
@@ -47,6 +49,8 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp"
         android:visibility="invisible"
+        android:tooltipText="@string/tooltip_save_selection"
+        android:contentDescription="@string/tooltip_save_selection"
         app:fabCustomSize="48dp"
         app:borderWidth="0dp"
         app:fabSize="auto"
@@ -64,6 +68,8 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp"
         android:visibility="invisible"
+        android:tooltipText="@string/tooltip_share_selection"
+        android:contentDescription="@string/tooltip_share_selection"
         app:fabCustomSize="48dp"
         app:borderWidth="0dp"
         app:fabSize="auto"
@@ -81,6 +87,8 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp"
         android:visibility="invisible"
+        android:tooltipText="@string/tooltip_delete_selection"
+        android:contentDescription="@string/tooltip_delete_selection"
         app:fabCustomSize="48dp"
         app:borderWidth="0dp"
         app:fabSize="auto"
@@ -97,7 +105,8 @@
         android:layout_margin="16dp"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="24dp"
-        android:contentDescription="@string/add_recording"
+        android:tooltipText="@string/tooltip_add_recording"
+        android:contentDescription="@string/tooltip_add_recording"
         app:borderWidth="0dp"
         app:fabSize="auto"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -190,7 +199,8 @@
             android:paddingTop="4dp"
             android:paddingEnd="2dp"
             android:paddingBottom="4dp"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            tools:ignore="LabelFor" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -203,6 +213,8 @@
         android:background="@null"
         android:scaleType="fitCenter"
         android:src="@drawable/baseline_filter_list_24"
+        android:tooltipText="@string/tooltip_sort_order"
+        android:contentDescription="@string/tooltip_sort_order"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:tint="?attr/colorAccent" />

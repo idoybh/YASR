@@ -178,6 +178,7 @@ public class RecordingService extends Service {
             mRecorder.release();
             mRecorder = null;
         }
+        //noinspection ResultOfMethodCallIgnored
         mOptions.getFile().delete();
         updateListeners(Status.IDLE);
     }
