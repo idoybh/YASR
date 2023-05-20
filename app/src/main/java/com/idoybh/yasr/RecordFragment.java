@@ -59,7 +59,7 @@ import java.util.TimerTask;
 public class RecordFragment extends Fragment {
     public static final String BUNDLE_ARG1 = "recording";
     public static final String SHARED_PREF_FILE = "yasr_prefs";
-    private static final String PREF_INPUT_DEVICE = "input_device";
+    private static final String PREF_INPUT_DEVICE = "input_device_selected";
     private static final String PREF_OUTPUT_EXT = "output_ext";
     private static final String PREF_OUTPUT_QUALITY = "output_quality";
     private static final String PREF_CHANNELS = "output_channels";
@@ -231,7 +231,7 @@ public class RecordFragment extends Fragment {
             }
             mAudioDevices.add(cDevice);
         }
-        final String inputPref = getPrefs().getString(PREF_INPUT_DEVICE, null);
+        final int inputPref = getPrefs().getInt(PREF_INPUT_DEVICE, 0);
         int c = 0;
         ArrayList<String> deviceNames = new ArrayList<>();
         for (AudioDeviceInfo device : mAudioDevices) {
@@ -241,7 +241,7 @@ public class RecordFragment extends Fragment {
                 deviceName += " (" + addr + ")";
             if (deviceName.isEmpty()) continue;
             deviceNames.add(deviceName);
-            if (deviceName.equals(inputPref))
+            if (device.getId() == inputPref)
                 mSelectedDeviceIndex = c;
             c++;
         }
@@ -320,7 +320,7 @@ public class RecordFragment extends Fragment {
 
             // save current settings as prefs for the next time we run
             SharedPreferences.Editor editor = getPrefs().edit();
-            editor.putString(PREF_INPUT_DEVICE, binding.deviceMenu.getText().toString());
+            editor.putInt(PREF_INPUT_DEVICE, mAudioDevices.get(mSelectedDeviceIndex).getId());
             if (checkedOutputID == R.id.outputBtnMP4)
                 editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
             else if (checkedOutputID == R.id.outputBtnOGG)
