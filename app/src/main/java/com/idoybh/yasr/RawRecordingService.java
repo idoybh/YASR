@@ -82,7 +82,8 @@ public class RawRecordingService extends RecordingService {
         Handler handler = new Handler(mRecodingThread.getLooper());
         handler.post(() -> {
             try {
-                tmpFile = File.createTempFile("tmp", ".pcm", getCacheDir());
+                tmpFile = File.createTempFile("tmp-record", ".pcm", null);
+                tmpFile.deleteOnExit();
             } catch (IOException e) {
                 e.printStackTrace();
                 updateListeners(Status.FAILED);
@@ -141,6 +142,7 @@ public class RawRecordingService extends RecordingService {
             mRecodingThread = null;
         }
         if (tmpFile != null && tmpFile.delete()) {
+            tmpFile = null;
             updateListeners(Status.IDLE);
             return;
         }
@@ -161,6 +163,7 @@ public class RawRecordingService extends RecordingService {
             return;
         }
         final boolean res = convertToWav(tmpFile, mOptions.getFile());
+        if (tmpFile.delete()) tmpFile = null;
         updateListeners(res ? Status.IDLE : Status.FAILED);
         stopSelf();
     }

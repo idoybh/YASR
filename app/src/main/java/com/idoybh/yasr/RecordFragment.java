@@ -80,6 +80,7 @@ public class RecordFragment extends Fragment {
     private int mLimitMode = LIMIT_MODE_SIZE;
     private List<View> mOptionViews;
     private File mCurrentRecordingFile;
+    private File mTempAudioFile;
     private String mDefaultName;
     private String mTotalDurationStr;
     private RecordingService mService;
@@ -306,6 +307,8 @@ public class RecordFragment extends Fragment {
                 requireContext().unbindService(connection);
             }
         }
+        if (mTempAudioFile != null && mTempAudioFile.exists() && mTempAudioFile.delete())
+            mTempAudioFile = null;
         binding = null;
         super.onDestroyView();
     }
@@ -574,9 +577,8 @@ public class RecordFragment extends Fragment {
             mRecorder = null;
             if (mNoiseTimer != null) mNoiseTimer.cancel();
             if (mNoiseTimerTask != null) mNoiseTimerTask.cancel();
-            final File tmpFile = new File(requireContext().getCacheDir()
-                    + File.separator + "tmp.m4a");
-            if (tmpFile.exists()) tmpFile.delete();
+            if (mTempAudioFile != null && mTempAudioFile.exists() && mTempAudioFile.delete())
+                mTempAudioFile = null;
         }
         mNoiseTimer = new Timer();
         mNoiseTimerTask = new TimerTask() {
@@ -600,10 +602,12 @@ public class RecordFragment extends Fragment {
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         try {
-            mRecorder.setOutputFile(File.createTempFile("tmp", ".mp3",
-                    requireContext().getCacheDir()));
+            mTempAudioFile = File.createTempFile("tmp-noise", ".m4a", null);
+            mTempAudioFile.deleteOnExit();
+            mRecorder.setOutputFile(mTempAudioFile);
             mRecorder.prepare();
             mRecorder.start();
+            mTempAudioFile.delete(); // delete when we stop writing to it
         } catch (IllegalStateException | IOException e) {
             e.printStackTrace();
             Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
