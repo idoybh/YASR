@@ -73,6 +73,7 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -134,7 +135,7 @@ public class FirstFragment extends Fragment {
         mDidCreate = true;
         new Thread(() -> {
             mUiHandler.post(() -> setSortProgressRunning(true));
-            List<File> recordings = new ArrayList<>();
+            List<File> recordings = Collections.synchronizedList(new ArrayList<>());
             File fileDir = requireContext().getFilesDir();
             File[] files = fileDir.listFiles();
             if (files == null) return;
@@ -980,6 +981,8 @@ public class FirstFragment extends Fragment {
 
     private void setSortProgressRunning(final boolean running) {
         if (binding == null) return;
+        binding.fab.setEnabled(!running);
+        binding.fab.bringToFront();
         binding.sortMenu.setEnabled(!running);
         binding.sortButton.setEnabled(!running);
         binding.sortIndicator.setIndeterminate(running);
