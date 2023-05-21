@@ -55,6 +55,7 @@
     <string name="input_filter_hint">Filter</string>
     <string name="input_sort_hint">Sort by</string>
     <string name="play_progress_description">Current play progress</string>
+    <string name="recording_list">recording list</string>
 
     <!-- tooltips -->
     <string name="tooltip_add_recording">New Recording</string>

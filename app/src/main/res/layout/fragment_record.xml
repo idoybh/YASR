@@ -94,8 +94,7 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/recordingNameInputText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                tools:ignore="TextContrastCheck" />
+                android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -108,6 +107,7 @@
             android:layout_marginEnd="16dp"
             android:hint="@string/audio_device"
             android:textColorHint="?colorPrimary"
+            android:labelFor="@id/deviceMenu"
             app:boxStrokeColor="?colorPrimary"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -117,8 +117,7 @@
                 android:id="@+id/deviceMenu"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none"
-                tools:ignore="LabelFor" />
+                android:inputType="none" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -180,7 +179,7 @@
 
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/qualityToggle"
-            android:layout_width="160dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="16dp"
@@ -188,8 +187,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/qualityTxt"
             app:selectionRequired="true"
-            app:singleSelection="true"
-            tools:ignore="TextSizeCheck">
+            app:singleSelection="true">
 
             <Button
                 android:id="@+id/qualityBtnHigh"
