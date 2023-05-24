@@ -79,6 +79,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class FirstFragment extends Fragment {
     private static final String PREF_SORT = "last_sort";
@@ -92,8 +94,10 @@ public class FirstFragment extends Fragment {
     private static final long GB = 1000000000;
     private static final long MB = 1000000;
     private static final long KB = 1000;
+    public static final Handler mUiHandler = new Handler(Looper.getMainLooper());
+    public static final ExecutorService mExecutor = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors());
 
-    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
     private SharedPreferences mSharedPrefs;
     private FragmentFirstBinding binding;
     private RecyclerAdapter mAdapter;
@@ -127,13 +131,16 @@ public class FirstFragment extends Fragment {
         final FloatingActionButton sampleFab = mMultiSelectFabs.get(0);
         final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
                 sampleFab.getLayoutParams();
-        int[] position = new int[2];
-        sampleFab.getLocationInWindow(position);
         ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
         ACTION_FAB_HEIGHT *= 10; // more bounce
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
 
         mDidCreate = true;
-        new Thread(() -> {
+        mExecutor.execute(() -> {
             mUiHandler.post(() -> setSortProgressRunning(true));
             List<File> recordings = Collections.synchronizedList(new ArrayList<>());
             File fileDir = requireContext().getFilesDir();
@@ -169,7 +176,7 @@ public class FirstFragment extends Fragment {
                 binding.recycler.setAdapter(mAdapter);
                 setSortProgressRunning(false);
             });
-        }).start();
+        });
 
         // sort and filter
         binding.filterText.addTextChangedListener(new TextWatcher() {
@@ -223,7 +230,7 @@ public class FirstFragment extends Fragment {
             }
             mAdapter.selectAll();
         });
-        binding.fabSave.setOnClickListener(v -> new Thread(() -> {
+        binding.fabSave.setOnClickListener(v -> mExecutor.execute(() -> {
             for (File file : mAdapter.getSelectedRecordings()) {
                 final String name = file.getName();
                 final String ext = name.substring(name.lastIndexOf(".") + 1);
@@ -238,7 +245,7 @@ public class FirstFragment extends Fragment {
                 startActivityForResult(intent, CREATE_FILE_CODE);
                 while (mWaitingForResults) Thread.onSpinWait();
             }
-        }).start());
+        }));
         binding.fabShare.setOnClickListener(v -> {
             ArrayList<Uri> uris = new ArrayList<>();
             for (File file : mAdapter.getSelectedRecordings()) {
@@ -263,7 +270,7 @@ public class FirstFragment extends Fragment {
         });
         binding.fabDelete.setOnClickListener(v -> displayAreYouSureDialog((dialog, which) -> {
             for (File file : mAdapter.getSelectedRecordings())
-                    mAdapter.removeRecording(file);
+                mAdapter.removeRecording(file);
             animateMultiFab(false);
         }, mAdapter.getSelectedRecordings().size()));
         binding.fab.setOnClickListener(v -> {
@@ -286,7 +293,8 @@ public class FirstFragment extends Fragment {
         binding.filterText.setText("");
 
         if (!mDidCreate) { // no need if we just re-created the view
-            new Thread(() -> {
+            setSortProgressRunning(true);
+            mExecutor.execute(() -> {
                 File fileDir = requireContext().getFilesDir();
                 File[] files = fileDir.listFiles();
                 if (files == null) return;
@@ -317,37 +325,44 @@ public class FirstFragment extends Fragment {
                         mAdapter.sortBy(mSortSelection);
                     setSortProgressRunning(false);
                 });
-            }).start();
+            });
         } else {
             mDidCreate = false;
         }
 
         // loading user prefs
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
-        final int defaultSorting = Integer.parseInt(
-                prefs.getString(SettingsFragment.SORT_KEY, "1"));
-        mRememberSort = defaultSorting == 1;
-        int sortMode;
-        switch (defaultSorting) {
-            case 0 -> { // disabled
-                mSortSelection = ListView.INVALID_POSITION;
+        setSortProgressRunning(true);
+        mExecutor.execute(() -> {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireActivity());
+            final int defaultSorting = Integer.parseInt(
+                    prefs.getString(SettingsFragment.SORT_KEY, "1"));
+            mRememberSort = defaultSorting == 1;
+            int sortMode;
+            switch (defaultSorting) {
+                case 0 -> { // disabled
+                    mSortSelection = ListView.INVALID_POSITION;
+                    mUiHandler.post(() -> setSortProgressRunning(false));
+                    return;
+                }
+                case 1 -> // remember last
+                        sortMode = getPrefs().getInt(PREF_SORT, ListView.INVALID_POSITION);
+                default -> // name, date, duration, size and type - ordered
+                        sortMode = defaultSorting - 2;
+            }
+            mSortSelection = sortMode;
+            if (sortMode == ListView.INVALID_POSITION) {
+                mUiHandler.post(() -> setSortProgressRunning(false));
                 return;
             }
-            case 1 -> // remember last
-                    sortMode = getPrefs().getInt(PREF_SORT, ListView.INVALID_POSITION);
-            default -> // name, date, duration, size and type - ordered
-                    sortMode = defaultSorting - 2;
-        }
-        mSortSelection = sortMode;
-        if (sortMode == ListView.INVALID_POSITION) return;
-        mReverseSort = getPrefs().getBoolean(PREF_REVERSE_SORT, false);
-        // so it's synced with the adapter init onCreate
-        // consider just making a synchronized block around a lock object
-        mUiHandler.post(() -> {
-            if (binding == null || mAdapter == null) return;
-            binding.sortButton.setRotation(mReverseSort ? 0 : 180);
-            binding.sortMenu.setText(sorts[sortMode], false);
-            mAdapter.sortBy(sortMode);
+            mReverseSort = getPrefs().getBoolean(PREF_REVERSE_SORT, false);
+            // so it's synced with the adapter init onCreate
+            // consider just making a synchronized block around a lock object
+            mUiHandler.post(() -> {
+                if (binding == null || mAdapter == null) return;
+                binding.sortButton.setRotation(mReverseSort ? 0 : 180);
+                binding.sortMenu.setText(sorts[sortMode], false);
+                mAdapter.sortBy(sortMode);
+            });
         });
     }
 
@@ -531,7 +546,7 @@ public class FirstFragment extends Fragment {
             // and some other things that could be added simply
             // in tests the user barely gets to see the progress bar, but scrolling latency is reduced by much
             holder.loadingIndicator.setIndeterminate(true);
-            new Thread(() -> {
+            mExecutor.execute(() -> {
                 final Calendar lastModified = Calendar.getInstance();
                 lastModified.setTimeInMillis(file.lastModified());
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd kk:mm", Locale.getDefault());
@@ -649,7 +664,7 @@ public class FirstFragment extends Fragment {
                     });
                     holder.loadingIndicator.setIndeterminate(false);
                 }); // </mUiHandler.post()>
-            }).start(); // </new Thread()>
+            }); // </mExecutor.execute()>
 
             // actions
             holder.detailCard.setOnLongClickListener(v -> {
@@ -862,7 +877,7 @@ public class FirstFragment extends Fragment {
 
         public void sortBy(final int sort) {
             setSortProgressRunning(true);
-            new Thread(() -> {
+            mExecutor.execute(() -> {
                 switch (sort) {
                     case SORT_BY_NAME -> mRecordings.sort(mReverseSort
                             ? Comparator.comparing(File::getName).reversed()
@@ -901,11 +916,11 @@ public class FirstFragment extends Fragment {
                         return mReverseSort ? ext2.compareTo(ext1) : ext1.compareTo(ext2);
                     });
                 }
-                requireActivity().runOnUiThread(() -> {
+                mUiHandler.post(() -> {
                     restart();
                     setSortProgressRunning(false);
                 });
-            }).start();
+            });
         }
 
         private HandlerThread mFilterHT;

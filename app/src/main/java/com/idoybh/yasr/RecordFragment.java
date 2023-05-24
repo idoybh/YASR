@@ -30,7 +30,6 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -55,6 +54,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executor;
 
 public class RecordFragment extends Fragment {
     public static final String BUNDLE_ARG1 = "recording";
@@ -69,7 +69,8 @@ public class RecordFragment extends Fragment {
     public static final int LIMIT_MODE_SIZE = 0;
     public static final int LIMIT_MODE_TIME = 1;
 
-    private final Handler mUiHandler = new Handler(Looper.getMainLooper());
+    private final Handler mUiHandler = FirstFragment.mUiHandler;
+    private final Executor mExecutor = FirstFragment.mExecutor;
     private FragmentRecordBinding binding;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
@@ -285,15 +286,19 @@ public class RecordFragment extends Fragment {
     @Override
     public void onStop() {
         registerToDuration(false);
-        if (mNoiseTimer != null) {
-            mNoiseTimer.cancel();
-            mNoiseTimer.purge();
-        }
-        if (mNoiseTimerTask != null)
-            mNoiseTimerTask.cancel();
-        if (mRecorder != null)
-            mRecorder.stop();
-        mRecorder = null;
+        mExecutor.execute(() -> {
+            if (mNoiseTimer != null) {
+                mNoiseTimer.cancel();
+                mNoiseTimer.purge();
+            }
+            if (mNoiseTimerTask != null)
+                mNoiseTimerTask.cancel();
+            if (mRecorder != null) {
+                mRecorder.stop();
+                mRecorder.release();
+            }
+            mRecorder = null;
+        });
         super.onStop();
     }
 
@@ -574,20 +579,22 @@ public class RecordFragment extends Fragment {
     }
 
     private void registerToDuration(final boolean register) {
-        if (register && mDurationTimer == null && mDurationTimerTask == null) {
-            mDurationTimer = new Timer();
-            mDurationTimerTask = new DurationTimerTask();
-            mDurationTimer.scheduleAtFixedRate(mDurationTimerTask, 0, 250);
-            return;
-        }
-        if (mDurationTimer == null || mDurationTimerTask == null)
-            return;
-        updateDurationText();
-        mDurationTimer.cancel();
-        mDurationTimer.purge();
-        mDurationTimer = null;
-        mDurationTimerTask.cancel();
-        mDurationTimerTask = null;
+        mExecutor.execute(() -> {
+            if (register && mDurationTimer == null && mDurationTimerTask == null) {
+                mDurationTimer = new Timer();
+                mDurationTimerTask = new DurationTimerTask();
+                mDurationTimer.scheduleAtFixedRate(mDurationTimerTask, 0, 250);
+                return;
+            }
+            if (mDurationTimer == null || mDurationTimerTask == null)
+                return;
+            mUiHandler.post(this::updateDurationText);
+            mDurationTimer.cancel();
+            mDurationTimer.purge();
+            mDurationTimer = null;
+            mDurationTimerTask.cancel();
+            mDurationTimerTask = null;
+        });
     }
 
     private SharedPreferences getPrefs() {
