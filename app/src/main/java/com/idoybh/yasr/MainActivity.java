@@ -23,13 +23,19 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
+import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -153,10 +159,11 @@ public class MainActivity extends AppCompatActivity {
                     .navigate(R.id.open_settings_fragment);
             return true;
         } else if (id == R.id.action_about) {
-            (new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setMessage(R.string.about)
-                    .setPositiveButton(R.string.button_ok, null)
-            ).show();
+            AlertDialog dialog = (new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setMessage(Html.fromHtml(getString(R.string.about), Html.FROM_HTML_MODE_LEGACY))
+                    .setPositiveButton(R.string.button_ok, null)).show();
+            ((TextView) dialog.requireViewById(android.R.id.message))
+                    .setMovementMethod(LinkMovementMethod.getInstance());
             return true;
         }
 
