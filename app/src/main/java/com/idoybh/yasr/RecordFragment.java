@@ -588,7 +588,7 @@ public class RecordFragment extends Fragment {
             }
             if (mDurationTimer == null || mDurationTimerTask == null)
                 return;
-            mUiHandler.post(this::updateDurationText);
+            updateDurationText();
             mDurationTimer.cancel();
             mDurationTimer.purge();
             mDurationTimer = null;
@@ -704,7 +704,7 @@ public class RecordFragment extends Fragment {
         }
     }
 
-    private void updateDurationText() {
+    private synchronized void updateDurationText() {
         if (binding == null) return;
         long sec = -1;
         if (isStarted && mService != null)
