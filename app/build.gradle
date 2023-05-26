@@ -13,8 +13,8 @@ android {
         applicationId "com.idoybh.yasr"
         minSdk 33
         targetSdk 33
-        versionCode 3
-        versionName "1.12"
+        versionCode 4
+        versionName "1.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
