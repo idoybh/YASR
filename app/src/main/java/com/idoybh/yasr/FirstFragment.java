@@ -541,8 +541,8 @@ public class FirstFragment extends Fragment {
                 mMediaPlayer.seekTo(Math.round(holder.playProgress.getValue()));
                 mMediaPlayer.setOnCompletionListener(mp -> {
                     final int index = mRecordings.indexOf(mPlayingRecording);
-                    if (index != RecyclerView.NO_POSITION) mProgresses.set(index, 0L);
                     stopPlaying();
+                    if (index != RecyclerView.NO_POSITION) mProgresses.set(index, 0L);
                     holder.timeTxt.setText(record.getTimeStr());
                     holder.playButton.setImageResource(R.drawable.baseline_play_arrow_24);
                     animateSliderValue(holder.playProgress, 0);
@@ -663,6 +663,7 @@ public class FirstFragment extends Fragment {
                     timer.purge();
                     handler.removeCallbacksAndMessages(null);
                 }
+                holder.setIsRecyclable(false);
                 timer = new Timer();
                 timer.scheduleAtFixedRate(this, 0, DELAY_MS);
             }
@@ -672,6 +673,7 @@ public class FirstFragment extends Fragment {
                 timer.cancel();
                 timer.purge();
                 timer = null;
+                holder.setIsRecyclable(true);
                 handler.removeCallbacksAndMessages(null);
                 final int pos = mMediaPlayer.getCurrentPosition();
                 mProgresses.set(holder.getAdapterPosition(), (long) pos);
@@ -723,14 +725,23 @@ public class FirstFragment extends Fragment {
         private static synchronized void animateSliderValue(Slider slider, float value) {
             final ValueAnimator animator = ValueAnimator.ofFloat(slider.getValue(), value);
             final float distance = Math.abs(slider.getValue() - value);
-            final boolean large = distance > slider.getValueTo() / 4f && slider.getValueTo() > 4f;
-            animator.setDuration(large ? 500 : 150);
+            final boolean large = distance > slider.getValueTo() / 2f && slider.getValueTo() > 2f;
+            animator.setDuration(large ? 500 : 50);
             animator.setFloatValues(slider.getValue(), value);
             animator.addUpdateListener(animation -> {
                 final float val = (float) animation.getAnimatedValue();
                 try {
                     slider.setValue(val);
                 } catch (Exception e) { animation.cancel(); }
+            });
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    super.onAnimationEnd(animation);
+                    try {
+                        slider.setValue(value);
+                    } catch (Exception e) { animation.cancel(); }
+                }
             });
             animator.start();
         }

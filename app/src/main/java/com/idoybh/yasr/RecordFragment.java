@@ -517,7 +517,7 @@ public class RecordFragment extends Fragment {
             case RecordingService.Status.PAUSED -> {
                 recordDrawableID = R.drawable.baseline_play_arrow_24;
                 recordTooltip = getString(R.string.tooltip_resume_recording);
-                if (mLimitMode != LIMIT_MODE_TIME && binding.limitSlider.getValue() >= 1)
+                if (mLimitMode != LIMIT_MODE_TIME || binding.limitSlider.getValue() < 1)
                     progressVis = View.INVISIBLE;
             }
         }
@@ -672,8 +672,8 @@ public class RecordFragment extends Fragment {
                         showSaveButton(false);
                         enableOptionViews(true);
                         registerToDuration(false);
-                        refreshDefaultName();
                         setBackEnabled(true);
+                        refreshDefaultName();
                         binding.timeText.setText("");
                     }
                     case RecordingService.Status.STARTED -> {
