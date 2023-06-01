@@ -1,0 +1,37 @@
+Privacy Policy for Yet Another Sound Recorder (YASR)
+The app was developed by a private individual Ido Ben-Hur - see bottom section for contact details
+
+This Privacy Policy governs the manner in which Yet Another Sound Recorder - YASR ("the App") collects, uses, maintains, and discloses information collected from users (referred to as "User," "you," or "your") of the App.
+
+    Information Collection and Usage
+
+1.1. Personal Information
+
+The App does not collect any personal information from its users. It does not require you to provide any personally identifiable information such as your name, email address, or contact details.
+
+1.2. Usage Statistics
+
+The App may collect anonymous usage statistics to improve the user experience and app performance. These statistics include information about the features you use, the frequency and duration of your usage, and your device's operating system version. This information is collected using Google Firebase Analytics.
+
+    Google Firebase
+
+The App uses Google Firebase, a web analytics service provided by Google, Inc. Firebase collects and analyzes data about app usage, including crash reports and anonymous usage statistics. The data collected by Firebase is subject to Google's Privacy Policy, which can be found at https://firebase.google.com/support/privacy
+
+    Google Play Store
+
+If you got the app from Google's play store it may also be subjected top their privacy policy which can be found here: https://policies.google.com/privacy
+
+    Data Security
+
+We are committed to ensuring that your information is secure. While we strive to use commercially acceptable means to protect your personal information, we cannot guarantee its absolute security due to the inherent risks associated with the transmission of data over the internet.
+
+    Third-Party Services
+
+The App may contain links to third-party websites or services that are not owned or controlled by us. We are not responsible for the privacy practices or content of these third-party services. We encourage you to review the privacy policies of those third-party services before providing any personal information or using their services.
+
+
+We reserve the right to update or change this Privacy Policy at any time. Any changes made will be effective immediately upon posting the revised Privacy Policy on the App. We encourage you to periodically review this page for the latest information on our privacy practices.
+
+    Contact Us
+
+If you have any questions or concerns about this Privacy Policy or the App's practices, please contact us at idoybh2@gmail.com.
