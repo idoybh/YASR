@@ -22,20 +22,20 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
-import android.text.SpannableString;
 import android.text.method.LinkMovementMethod;
-import android.text.util.Linkify;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -159,11 +159,36 @@ public class MainActivity extends AppCompatActivity {
                     .navigate(R.id.open_settings_fragment);
             return true;
         } else if (id == R.id.action_about) {
-            AlertDialog dialog = (new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setMessage(Html.fromHtml(getString(R.string.about), Html.FROM_HTML_MODE_LEGACY))
-                    .setPositiveButton(R.string.button_ok, null)).show();
-            ((TextView) dialog.requireViewById(android.R.id.message))
-                    .setMovementMethod(LinkMovementMethod.getInstance());
+            View dialogView = LayoutInflater.from(this)
+                    .inflate(R.layout.about_dialog, null, false);
+            TextView msg = dialogView.requireViewById(R.id.msgTxt);
+            ImageButton gitBtn = dialogView.requireViewById(R.id.githubButton);
+            ImageButton mailBtn = dialogView.requireViewById(R.id.mailButton);
+            ImageButton telegramBtn = dialogView.requireViewById(R.id.telegramButton);
+            msg.setText(Html.fromHtml(getString(R.string.about), Html.FROM_HTML_MODE_LEGACY));
+            msg.setMovementMethod(LinkMovementMethod.getInstance());
+            gitBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(getString(R.string.about_github)));
+                startActivity(intent);
+            });
+            mailBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_SENDTO);
+                intent.setData(Uri.parse("mailto:")); // only email apps should handle this
+                intent.putExtra(Intent.EXTRA_EMAIL, new String[] {getString(R.string.about_mail)});
+                intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.about_mail_title));
+                startActivity(intent);
+            });
+            telegramBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(getString(R.string.about_telegram)));
+                startActivity(intent);
+            });
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.action_about)
+                    .setView(dialogView)
+                    .setPositiveButton(R.string.button_ok, (dialog, which) -> dialog.dismiss())
+                    .show();
             return true;
         }
 

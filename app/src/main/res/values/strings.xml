@@ -19,10 +19,13 @@
     <string name="about"><![CDATA[
         Yet Another Sound Recorder (<b>YASR</b>)<br>
         Was developed by <a href=\'https://www.github.com/idoybh\'><b>Ido Ben-Hur</b></a> &copy;<br><br>
-        <a href=\'https://www.github.com/idoybh/YASR\'>Source code</a>  ;
-        <a href=\'https://raw.githubusercontent.com/bmaupin/android-pitchpipe/main/metadata/en-US/privacy_policy.txt\'>Privacy policy</a><br><br>
-        Licensed by the <a href=\'https://www.apache.org/licenses/LICENSE-2.0.txt\'>Apache 2.0 license</a>
+        <a href=\'https://raw.githubusercontent.com/idoybh/YASR/master/privacy_policy.txt\'>Privacy policy</a><br><br>
+        Licensed by the <a href=\'https://www.apache.org/licenses/LICENSE-2.0.txt\'>Apache 2.0 license</a><br>
     ]]></string>
+    <string name="about_mail" translatable="false">idoybh2@gmail.com</string>
+    <string name="about_mail_title" translatable="false">YASR Support</string>
+    <string name="about_github" translatable="false">https://www.github.com/idoybh/YASR</string>
+    <string name="about_telegram" translatable="false">https://t.me/idoybh2</string>
     <string name="first_fragment_label">@string/app_name</string>
     <string name="record_fragment_label">Add a recording</string>
     <string name="text_name_label">File name</string>
@@ -90,6 +93,9 @@
     <string name="tooltip_resume_recording">Resume Recording</string>
     <string name="tooltip_save_recording">Save Recording</string>
     <string name="tooltip_discard_recording">Discard Recording</string>
+    <string name="tooltip_about_github">Source code on GitHub</string>
+    <string name="tooltip_about_mail">Contact me via mail</string>
+    <string name="tooltip_about_telegram">Contact me via telegram</string>
 
     <!-- Preferences -->
     <string name="ui_mode_title">App Theme</string>
