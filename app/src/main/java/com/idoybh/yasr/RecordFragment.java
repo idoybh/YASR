@@ -642,7 +642,7 @@ public class RecordFragment extends Fragment {
             mRecorder.start();
             //noinspection ResultOfMethodCallIgnored
             mTempAudioFile.delete(); // delete when we stop writing to it
-        } catch (IllegalStateException | IOException e) {
+        } catch (RuntimeException | IOException e) {
             e.printStackTrace();
             Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
             for (View v : mOptionViews) v.setEnabled(false);
