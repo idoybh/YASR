@@ -13,7 +13,7 @@
      limitations under the License.
 -->
 <resources>
-    <string name="app_name">YASR</string>
+    <string name="app_name" translatable="false">YASR</string>
     <string name="action_settings">Settings</string>
     <string name="action_about">About</string>
     <string name="about"><![CDATA[
@@ -26,30 +26,30 @@
     <string name="about_mail_title" translatable="false">YASR Support</string>
     <string name="about_github" translatable="false">https://www.github.com/idoybh/YASR</string>
     <string name="about_telegram" translatable="false">https://t.me/idoybh2</string>
-    <string name="first_fragment_label">@string/app_name</string>
+    <string name="first_fragment_label" translatable="false">@string/app_name</string>
     <string name="record_fragment_label">Add a recording</string>
     <string name="text_name_label">File name</string>
     <string name="button_ok">OK</string>
     <string name="button_exit">Exit</string>
     <string name="service_notification_text">Audio recording in progress</string>
-    <string name="out_selector_m4a">m4a</string>
-    <string name="out_selector_ogg">ogg</string>
-    <string name="out_selector_wav">wav</string>
-    <string name="hd">HD</string>
-    <string name="sd">SD</string>
-    <string name="ld">LD</string>
+    <string name="out_selector_m4a" translatable="false">m4a</string>
+    <string name="out_selector_ogg" translatable="false">ogg</string>
+    <string name="out_selector_wav" translatable="false">wav</string>
+    <string name="hd" translatable="false">HD</string>
+    <string name="sd" translatable="false">SD</string>
+    <string name="ld" translatable="false">LD</string>
     <string name="audio_device">Audio Device</string>
-    <string name="stereo">2</string>
-    <string name="mono">1</string>
+    <string name="stereo" translatable="false">2</string>
+    <string name="mono" translatable="false">1</string>
     <string name="quality_txt">Quality:</string>
     <string name="output_txt">Format:</string>
     <string name="channels_txt">Channels:</string>
     <string name="limit_txt">Limit by:</string>
     <string name="unlimited_txt">Unlimited</string>
     <string name="unit_meters">m</string>
-    <string name="unit_gb">GB</string>
-    <string name="unit_mb">MB</string>
-    <string name="unit_kb">kB</string>
+    <string name="unit_gb" translatable="false">GB</string>
+    <string name="unit_mb" translatable="false">MB</string>
+    <string name="unit_kb" translatable="false">kB</string>
     <string name="unit_seconds">s</string>
     <string name="info_txt" formatted="false">Sample rate: %.1f kHz | Depth: %d bit | Encoder: %s</string>
     <string name="info_txt_lossy">Lossy</string>
@@ -95,9 +95,21 @@
     <string name="tooltip_discard_recording">Discard Recording</string>
     <string name="tooltip_about_github">Source code on GitHub</string>
     <string name="tooltip_about_mail">Contact me via mail</string>
-    <string name="tooltip_about_telegram">Contact me via telegram</string>
+    <string name="tooltip_about_telegram">Contact me via Telegram</string>
 
     <!-- Preferences -->
     <string name="ui_mode_title">App Theme</string>
     <string name="sort_mode_title">Automatically sort by</string>
+
+    <!-- Array strings -->
+    <string name="name">Name</string>
+    <string name="date">Date</string>
+    <string name="duration">Duration</string>
+    <string name="size">Size</string>
+    <string name="type">Type</string>
+    <string name="disabled">Disabled</string>
+    <string name="last_used">Last used</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="follow_system">Follow system (default)</string>
 </resources>

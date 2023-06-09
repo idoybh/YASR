@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_settings">הגדרות</string>
+    <string name="action_about">אודות</string>
+    <string name="about"><![CDATA[
+        Yet Another Sound Recorder (<b>YASR</b>)<br>
+        (עוד רשמקול)<br>
+        פותח על ידי <a href=\'https://www.github.com/idoybh\'><b>עידו בן-חור</b></a> &copy;<br><br>
+        <a href=\'https://raw.githubusercontent.com/idoybh/YASR/master/privacy_policy.txt\'>מדיניות הפרטיות</a><br><br>
+        מורשה על ידי <a href=\'https://www.apache.org/licenses/LICENSE-2.0.txt\'>Apache 2.0 license</a><br>
+    ]]></string>
+    <string name="record_fragment_label">הוסף הקלטה</string>
+    <string name="text_name_label">שם הקובץ</string>
+    <string name="button_ok">אישור</string>
+    <string name="button_exit">יציאה</string>
+    <string name="service_notification_text">הקלטה מתבצעת</string>
+    <string name="audio_device">מיקרופון</string>
+    <string name="quality_txt">איכות:</string>
+    <string name="output_txt">סוג קובץ:</string>
+    <string name="channels_txt">ערוצים:</string>
+    <string name="limit_txt">הגבל לפי:</string>
+    <string name="unlimited_txt">לא מוגבל</string>
+    <string name="unit_meters">מ</string>
+    <string name="unit_seconds">ש</string>
+    <string name="info_txt" formatted="false">קצב דגימה: %.1f kHz | עומק: %d bit | מקודד: %s</string>
+    <string name="info_txt_lossy">מאבד נתונים</string>
+    <string name="info_txt_lossless">לא מאבד נתונים</string>
+    <string name="permission_dialog_msg">אפליקציה זו צריכה את ההרשאות הבאות על מנת לפעול</string>
+    <string name="are_you_sure_msg">לא ניתן לבטל פעולה זו\nהאם את\\ה בטוח\\ה?</string>
+    <string name="are_you_sure_msg_mul">%d קבצים יימחקו\\n</string>
+    <string name="button_yes">כן</string>
+    <string name="button_no">לא</string>
+    <string name="invalid_name">שם לא נתמך</string>
+    <string name="mic_in_use">המיקרופון בשימוש על ידי תוכנה אחרת</string>
+    <string name="input_filter_hint">סינון</string>
+    <string name="input_sort_hint">מיין לפי</string>
+    <string name="play_progress_description">התקדמות השמעת הקובץ</string>
+    <string name="recording_list">רשימת ההקלטות</string>
+    <string name="name">שם</string>
+    <string name="date">תאריך</string>
+    <string name="duration">משך זמן</string>
+    <string name="size">גודל</string>
+    <string name="type">סוג</string>
+    <string name="disabled">מבוטל</string>
+    <string name="last_used">אחרון בשימוש</string>
+    <string name="light">בהיר</string>
+    <string name="dark">חשוך</string>
+    <string name="follow_system">עקוב אחר המערכת (ברירת מחדל)</string>
+    <string name="tooltip_add_recording">הקלטה חדשה</string>
+    <string name="tooltip_delete_selection">מחק בחירה</string>
+    <string name="tooltip_share_selection">שתף בחירה</string>
+    <string name="tooltip_save_selection">שמור בחירה</string>
+    <string name="tooltip_toggle_selection_all">בחר הכל</string>
+    <string name="tooltip_toggle_selection_none">נקה בחירה</string>
+    <string name="tooltip_sort_order">סדר מיון</string>
+    <string name="tooltip_file_name">שם הקובץ</string>
+    <string name="tooltip_create_time">זמן יצירת הקובץ</string>
+    <string name="tooltip_play_pause">נגן \\ הפסק</string>
+    <string name="tooltip_select">בחר</string>
+    <string name="tooltip_save">שמור</string>
+    <string name="tooltip_share">שתף</string>
+    <string name="tooltip_delete">מחק</string>
+    <string name="tooltip_duration">התקדמות \\ זמן כולל</string>
+    <string name="tooltip_file_type">סוג הקובץ</string>
+    <string name="tooltip_file_size">גודל הקובץ</string>
+    <string name="tooltip_input_noise">מחוון קלט</string>
+    <string name="tooltip_limit">הגדר מגבלה</string>
+    <string name="tooltip_limit_size">גודל</string>
+    <string name="tooltip_limit_time">זמן</string>
+    <string name="tooltip_start_recording">התחל להקליט</string>
+    <string name="tooltip_pause_recording">השהה הקלטה</string>
+    <string name="tooltip_resume_recording">המשך להקליט</string>
+    <string name="tooltip_save_recording">שמור הקלטה</string>
+    <string name="tooltip_discard_recording">מחק הקלטה</string>
+    <string name="tooltip_about_github">קוד מקור ב-GitHub</string>
+    <string name="tooltip_about_mail">צור קשר במייל</string>
+    <string name="tooltip_about_telegram">צור קשר ב-Telegram</string>
+    <string name="ui_mode_title">ערכת נושא</string>
+    <string name="sort_mode_title">מיין אוטומטית לפי</string>
+</resources>

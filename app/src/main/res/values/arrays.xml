@@ -1,36 +1,36 @@
 <resources>
-    <string-array name="sort_by_items">
-        <item>Name</item>
-        <item>Date</item>
-        <item>Duration</item>
-        <item>Size</item>
-        <item>Type</item>
+    <string-array name="sort_by_items" translatable="false">
+        <item>@string/name</item>
+        <item>@string/date</item>
+        <item>@string/duration</item>
+        <item>@string/size</item>
+        <item>@string/type</item>
     </string-array>
 
     <!-- pref page -->
     <string-array name="ui_mode_entries">
-        <item>Light</item>
-        <item>Dark</item>
-        <item>Follow system (default)</item>
+        <item>@string/light</item>
+        <item>@string/dark</item>
+        <item>@string/follow_system</item>
     </string-array>
 
-    <string-array name="ui_mode_values">
+    <string-array name="ui_mode_values" translatable="false">
         <item>0</item>
         <item>1</item>
         <item>2</item>
     </string-array>
 
-    <string-array name="sort_mode_entries">
-        <item>Disabled</item>
-        <item>Last used</item>
-        <item>Name</item>
-        <item>Date</item>
-        <item>Duration</item>
-        <item>Size</item>
-        <item>Type</item>
+    <string-array name="sort_mode_entries" translatable="false">
+        <item>@string/disabled</item>
+        <item>@string/last_used</item>
+        <item>@string/name</item>
+        <item>@string/date</item>
+        <item>@string/duration</item>
+        <item>@string/size</item>
+        <item>@string/type</item>
     </string-array>
 
-    <string-array name="sort_mode_values">
+    <string-array name="sort_mode_values" translatable="false">
         <item>0</item>
         <item>1</item>
         <item>2</item>
