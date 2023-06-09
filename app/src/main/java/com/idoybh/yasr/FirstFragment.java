@@ -116,18 +116,20 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mMultiSelectFabs = new ArrayList<>(List.of(
-                binding.fabSelection,
-                binding.fabSave,
-                binding.fabShare,
-                binding.fabDelete
-        ));
+        if (mMultiSelectFabs == null) {
+            mMultiSelectFabs = new ArrayList<>(List.of(
+                    binding.fabSelection,
+                    binding.fabSave,
+                    binding.fabShare,
+                    binding.fabDelete
+            ));
 
-        final FloatingActionButton sampleFab = mMultiSelectFabs.get(0);
-        final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
-                sampleFab.getLayoutParams();
-        ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
-        ACTION_FAB_HEIGHT *= 10; // more bounce
+            final FloatingActionButton sampleFab = mMultiSelectFabs.get(0);
+            final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
+                    sampleFab.getLayoutParams();
+            ACTION_FAB_HEIGHT = sampleFab.getMeasuredHeight() + params.bottomMargin;
+            ACTION_FAB_HEIGHT *= 10; // more bounce
+        }
 
         // sort and filter
         binding.filterText.addTextChangedListener(new TextWatcher() {
@@ -502,6 +504,7 @@ public class FirstFragment extends Fragment {
             }
 
             // player actions
+
             holder.playButton.setOnClickListener(v -> {
                 if (mPlayingRecording != null && mPlayingRecording != record && mMediaPlayer != null) {
                     // a different file is playing, stop it before

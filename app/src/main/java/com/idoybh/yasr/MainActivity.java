@@ -21,11 +21,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
@@ -41,6 +44,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.preference.PreferenceManager;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.elevation.SurfaceColors;
@@ -50,6 +54,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_RECORDING = "com.idoybh.yasr.RECORDING";
@@ -60,8 +65,22 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        final String langCode = PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(LangFragment.KEY_OVERRIDE_LOCALE, null);
+        if (langCode != null && !langCode.isEmpty()) {
+            Log.i("IDO", langCode);
+            Locale locale = new Locale(langCode);
+            Locale.setDefault(locale);
+            Resources res = getResources();
+            Configuration config = res.getConfiguration();
+            config.setLocale(locale);
+            config.setLayoutDirection(locale);
+            res.updateConfiguration(config, res.getDisplayMetrics());
+        }
+
         super.onCreate(savedInstanceState);
 
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);

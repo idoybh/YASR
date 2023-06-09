@@ -50,7 +50,27 @@
 
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.idoybh.yasr.SettingsFragment"/>
+        android:name="com.idoybh.yasr.SettingsFragment">
+        <action
+            android:id="@+id/action_settingsFragment_to_langFragment"
+            app:destination="@id/langFragment"
+            app:enterAnim="@anim/slide_in"
+            app:exitAnim="@anim/slide_out"
+            app:popEnterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/langFragment"
+        android:name="com.idoybh.yasr.LangFragment">
+        <action
+            android:id="@+id/action_langFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment"
+            app:enterAnim="@anim/slide_in"
+            app:exitAnim="@anim/slide_out"
+            app:popEnterAnim="@anim/slide_in"
+            app:popExitAnim="@anim/slide_out"/>
+    </fragment>
 
     <action
         android:id="@+id/open_settings_fragment"

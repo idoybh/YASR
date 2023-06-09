@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -15,9 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SettingsFragment extends PreferenceFragmentCompat
-        implements Preference.OnPreferenceChangeListener {
+        implements Preference.OnPreferenceChangeListener, Preference.OnPreferenceClickListener {
     private static final String THEME_KEY = "ui_mode";
     public static final String SORT_KEY = "sort_mode";
+    private static final String LANG_KEY = "lang_pref";
 
     private static final Map<Integer, Integer> THEME_VALUE_TO_UI_MODE = new HashMap<>(Map.of(
             0, UiModeManager.MODE_NIGHT_NO,
@@ -29,6 +31,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
 
     private ListPreference mThemeListPref;
     private ListPreference mSortListPref;
+    private Preference mLangPref;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -47,6 +50,19 @@ public class SettingsFragment extends PreferenceFragmentCompat
         final int sortValue = Integer.parseInt(prefs.getString(SORT_KEY, "1"));
         mSortListPref.setSummary(mSortListPref.getEntries()[sortValue]);
         mSortListPref.setOnPreferenceChangeListener(this);
+
+        mLangPref = findPreference(LANG_KEY);
+        mLangPref.setOnPreferenceClickListener(this);
+    }
+
+    @Override
+    public boolean onPreferenceClick(@NonNull Preference preference) {
+        if (preference == mLangPref) {
+            NavHostFragment.findNavController(SettingsFragment.this)
+                    .navigate(R.id.action_settingsFragment_to_langFragment);
+            return true;
+        }
+        return false;
     }
 
     @Override
