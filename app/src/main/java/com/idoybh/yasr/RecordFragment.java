@@ -644,8 +644,10 @@ public class RecordFragment extends Fragment {
             mTempAudioFile.delete(); // delete when we stop writing to it
         } catch (RuntimeException | IOException e) {
             e.printStackTrace();
+            mRecorder = null;
             Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
             for (View v : mOptionViews) v.setEnabled(false);
+            binding.outputToggle.setEnabled(true);
             binding.recordButton.setEnabled(false);
             return;
         }
