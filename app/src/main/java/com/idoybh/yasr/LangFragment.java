@@ -16,19 +16,17 @@
 package com.idoybh.yasr;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
-import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,12 +34,15 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class LangFragment extends Fragment {
-    public static final String KEY_OVERRIDE_LOCALE = "override_locale";
     private Locale mSelectedLocale;
 
     @Override
@@ -57,17 +58,12 @@ public class LangFragment extends Fragment {
         // Set the adapter
         if (view instanceof RecyclerView recyclerView) {
             final Locale systemLocale = Resources.getSystem().getConfiguration().getLocales().get(0);
-            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
-            final String selected = prefs.getString(KEY_OVERRIDE_LOCALE, null);
-            mSelectedLocale = selected != null ? new Locale(selected) : systemLocale;
-            Log.i("IDO", mSelectedLocale.getLanguage());
-            final List<Locale> avail = new ArrayList<>(List.of(
-                    Locale.ENGLISH,
-                    new Locale("iw")
-            ));
+            final LocaleListCompat avail = getAvailLocales();
+            mSelectedLocale = LocaleListCompat.getDefault().get(0);
             List<Locale> locales = new ArrayList<>();
             locales.add(systemLocale);
-            for (Locale locale : avail) {
+            for (int i = 0; i < avail.size(); i++) {
+                final Locale locale = avail.get(i);
                 if (!locales.contains(locale)) locales.add(locale);
             }
             LinearLayoutManager manager = new LinearLayoutManager(requireContext());
@@ -77,6 +73,28 @@ public class LangFragment extends Fragment {
             recyclerView.setAdapter(new LangRecyclerViewAdapter(locales));
         }
         return view;
+    }
+
+    private LocaleListCompat getAvailLocales() {
+        StringBuilder sb = new StringBuilder();
+        boolean added = false;
+        try {
+            XmlPullParser xpp = requireContext().getResources().getXml(R.xml.locales_config);
+            while (xpp.getEventType() != XmlPullParser.END_DOCUMENT) {
+                if (xpp.getEventType() == XmlPullParser.START_TAG) {
+                    if (xpp.getName().equals("locale")) {
+                        if (added) sb.append(",");
+                        else added = true;
+                        sb.append(xpp.getAttributeValue(0));
+                    }
+                }
+                xpp.next();
+            }
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
+
+        return LocaleListCompat.forLanguageTags(sb.toString());
     }
 
     private class LangRecyclerViewAdapter extends RecyclerView.Adapter<LangRecyclerViewAdapter.ViewHolder> {
@@ -111,26 +129,11 @@ public class LangFragment extends Fragment {
                 FirstFragment.displayAreYouSureDialog(requireActivity(),
                         getString(R.string.lang_restart_msg),
                         (dialog, which) -> {
-                            final SharedPreferences prefs =
-                                    PreferenceManager.getDefaultSharedPreferences(requireContext());
-                            if (isDefault) {
-                                prefs.edit().remove(KEY_OVERRIDE_LOCALE).commit();
-                                restartApp();
-                                return;
-                            }
-                            prefs.edit().putString(KEY_OVERRIDE_LOCALE, locale.getLanguage()).commit();
-                            Log.i("IDO", "put: " + locale.getLanguage());
-                            restartApp();
+                            LocaleListCompat apply = LocaleListCompat.getEmptyLocaleList();
+                            if (!isDefault) apply = LocaleListCompat.create(pressed);
+                            AppCompatDelegate.setApplicationLocales(apply);
                         });
             });
-        }
-
-        private void restartApp() {
-            Intent intent = new Intent(requireActivity(), MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            requireActivity().startActivity(intent);
-            requireActivity().finish();
-            Runtime.getRuntime().exit(0);
         }
 
         @Override

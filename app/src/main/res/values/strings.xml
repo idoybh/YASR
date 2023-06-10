@@ -104,7 +104,7 @@
     <string name="lang_summary">Set the app\'s language</string>
     <string name="currently_selected_lang">Currently selected language</string>
     <string name="default_lang">System default</string>
-    <string name="lang_restart_msg">This operation requires an app restart\nAre you sure?</string>
+    <string name="lang_restart_msg">This operation may require an app restart\nAre you sure?</string>
 
     <!-- Array strings -->
     <string name="name">Name</string>

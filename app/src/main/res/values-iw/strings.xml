@@ -40,7 +40,7 @@
     <string name="lang_summary">שנה את שפת האפליקציה</string>
     <string name="currently_selected_lang">השפה שנבחרה כעת</string>
     <string name="default_lang">ברירת מחדל מערכת</string>
-    <string name="lang_restart_msg">פעולה זו דורשת פתיחה מחדש של האפליקציה\nהאם להמשיך?</string>
+    <string name="lang_restart_msg">פעולה זו עשויה לדרוש פתיחה מחדש של האפליקציה\nהאם להמשיך?</string>
     <string name="name">שם</string>
     <string name="date">תאריך</string>
     <string name="duration">משך זמן</string>
