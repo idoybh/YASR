@@ -39,6 +39,7 @@ import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
@@ -507,9 +508,7 @@ public class RecordFragment extends Fragment {
         String recordTooltip = getString(R.string.tooltip_start_recording);
         switch (status) {
             case RecordingService.Status.FAILED, RecordingService.Status.MAX_REACHED,
-                    RecordingService.Status.IDLE -> {
-                progressVis = View.INVISIBLE;
-            }
+                    RecordingService.Status.IDLE -> progressVis = View.INVISIBLE;
             case RecordingService.Status.STARTED -> {
                 recordDrawableID = R.drawable.baseline_pause_24;
                 recordTooltip = getString(R.string.tooltip_pause_recording);
@@ -658,7 +657,9 @@ public class RecordFragment extends Fragment {
 
     private void setBackEnabled(final boolean enabled) {
         onBackCallback.setEnabled(!enabled); // callback should be enabled when back is disabled
-        ((AppCompatActivity) requireActivity()).getSupportActionBar().setDisplayHomeAsUpEnabled(enabled);
+        ActionBar bar = ((AppCompatActivity) requireActivity()).getSupportActionBar();
+        if (bar == null) return;
+        bar.setDisplayHomeAsUpEnabled(enabled);
     }
 
     private final StatusListener mStatusListener = new StatusListener();

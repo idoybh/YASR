@@ -21,7 +21,6 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -48,6 +47,8 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
@@ -74,8 +75,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -84,7 +88,6 @@ import java.util.concurrent.Executors;
 public class FirstFragment extends Fragment {
     private static final String PREF_SORT = "last_sort";
     private static final String PREF_REVERSE_SORT = "last_reverse_sort";
-    private static final int CREATE_FILE_CODE = 0x01;
     private static final int SORT_BY_NAME = 0;
     private static final int SORT_BY_DATE = 1;
     private static final int SORT_BY_DURATION = 2;
@@ -101,7 +104,6 @@ public class FirstFragment extends Fragment {
     private int mSortSelection = ListView.INVALID_POSITION;
     private boolean mRememberSort = true;
     private boolean mReverseSort = false;
-    private volatile boolean mWaitingForResults = false;
 
     // to save animation calculations and do only once
     private float ACTION_FAB_HEIGHT;
@@ -183,19 +185,13 @@ public class FirstFragment extends Fragment {
             }
             mAdapter.selectAll();
         });
-        binding.fabSave.setOnClickListener(v -> mExecutor.execute(() -> {
-            for (RecordingData data : mAdapter.getSelectedRecordings()) {
-                mAdapter.setSavingRecording(data);
-                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType(data.mime);
-                intent.putExtra(Intent.EXTRA_TITLE, data.name + "." + data.ext);
-                mWaitingForResults = true;
-                //noinspection deprecation
-                startActivityForResult(intent, CREATE_FILE_CODE);
-                while (mWaitingForResults) Thread.onSpinWait();
-            }
-        }));
+        binding.fabSave.setOnClickListener(v -> {
+            mSavingQueue = new LinkedList<>();
+            mSavingQueue.addAll(mAdapter.getSelectedRecordings());
+            final RecordingData first = mSavingQueue.peek();
+            if (first == null) return;
+            mResultLauncher.launch(first.name + "." + first.ext);
+        });
         binding.fabShare.setOnClickListener(v -> {
             ArrayList<Uri> uris = new ArrayList<>();
             for (RecordingData data : mAdapter.getSelectedRecordings()) {
@@ -333,34 +329,6 @@ public class FirstFragment extends Fragment {
         binding = null;
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        mWaitingForResults = false;
-        if (requestCode != CREATE_FILE_CODE || resultCode != Activity.RESULT_OK)
-            return;
-        Uri uri = null;
-        if (data != null) uri = data.getData();
-        if (uri == null) return;
-        // it is very unclear why android made this so complicated instead of just returning
-        // a sane path in the uri... but it is what it is I guess....
-        try (ParcelFileDescriptor descriptor = requireContext().getContentResolver()
-                .openFileDescriptor(uri, "rw")) {
-            final File sourceFile = mAdapter.getSavingFile().recording;
-            try (InputStream in = new FileInputStream(sourceFile);
-                 OutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0)
-                    out.write(buf, 0, len);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private static void animateRotation(final View v, final int targetRotation) {
         final ValueAnimator animator = new ValueAnimator();
         animator.setDuration(250);
@@ -417,7 +385,6 @@ public class FirstFragment extends Fragment {
         private final List<RecordingData> mOrigRecordings;
         private final List<RecordingData> mSelectedRecordings = new ArrayList<>();
         private final List<Long> mProgresses = new ArrayList<>();
-        private RecordingData mSavingRecording;
         private RecordingData mPlayingRecording;
         private int mPlayingAdapterPos = RecyclerView.NO_POSITION;
         private boolean mIsPaused = false;
@@ -617,13 +584,9 @@ public class FirstFragment extends Fragment {
             holder.selectButton.setOnClickListener(v -> checkItem(holder.detailCard, holder.getAdapterPosition()));
             holder.saveButton.setOnClickListener(v -> {
                 if (!mSelectedRecordings.isEmpty()) return;
-                mSavingRecording = record;
-                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType(record.mime);
-                intent.putExtra(Intent.EXTRA_TITLE, record.name + "." + record.ext);
-                //noinspection deprecation
-                startActivityForResult(intent, CREATE_FILE_CODE);
+                mSavingQueue = new LinkedList<>();
+                mSavingQueue.add(record);
+                mResultLauncher.launch(record.name + "." + record.ext);
             });
             holder.shareButton.setOnClickListener(v -> {
                 if (!mSelectedRecordings.isEmpty()) return;
@@ -809,14 +772,6 @@ public class FirstFragment extends Fragment {
 
         public List<RecordingData> getSelectedRecordings() {
             return mSelectedRecordings;
-        }
-
-        public void setSavingRecording(RecordingData data) {
-            mSavingRecording = data;
-        }
-
-        public RecordingData getSavingFile() {
-            return mSavingRecording;
         }
 
         public void removeRecording(RecordingData data) {
@@ -1039,4 +994,36 @@ public class FirstFragment extends Fragment {
                 RecordFragment.SHARED_PREF_FILE, Context.MODE_PRIVATE);
         return mSharedPrefs;
     }
+
+    private Queue<RecordingData> mSavingQueue;
+
+    private void saveFile(Uri uri) {
+        if (uri == null) return;
+        if (mSavingQueue == null || mSavingQueue.peek() == null) return;
+        // it is very unclear why android made this so complicated instead of just returning
+        // a sane path in the uri... but it is what it is I guess....
+        try (ParcelFileDescriptor descriptor = requireContext().getContentResolver()
+                .openFileDescriptor(uri, "rw")) {
+            final File sourceFile = Objects.requireNonNull(mSavingQueue.poll()).recording;
+            if (mSavingQueue.size() == 0) mSavingQueue = null;
+            try (InputStream in = new FileInputStream(sourceFile);
+                 OutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0)
+                    out.write(buf, 0, len);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (mSavingQueue == null) return;
+        final RecordingData next = mSavingQueue.peek();
+        if (next == null) return;
+        mResultLauncher.launch(next.name + "." + next.ext);
+    }
+
+    private final ActivityResultLauncher<String> mResultLauncher = registerForActivityResult(
+            new ActivityResultContracts.CreateDocument("audio/*"), this::saveFile);
 }
