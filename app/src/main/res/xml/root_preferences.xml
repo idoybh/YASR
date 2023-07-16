@@ -15,26 +15,51 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:title="@string/action_settings">
-    <ListPreference
-        android:defaultValue="2"
-        android:entries="@array/ui_mode_entries"
-        android:entryValues="@array/ui_mode_values"
-        android:key="ui_mode"
-        android:title="@string/ui_mode_title"
-        app:icon="@drawable/baseline_dark_mode_24" />
 
-    <ListPreference
-        android:defaultValue="1"
-        android:entries="@array/sort_mode_entries"
-        android:entryValues="@array/sort_mode_values"
-        android:key="sort_mode"
-        android:title="@string/sort_mode_title"
-        app:icon="@drawable/baseline_filter_list_24" />
+    <PreferenceCategory
+        android:title="@string/general_title">
 
-    <Preference
-        android:fragment="com.idoybh.yasr.LangFragment"
-        android:key="lang_pref"
-        android:summary="@string/lang_summary"
-        android:title="@string/lang_title"
-        app:icon="@drawable/baseline_language_24" />
+        <Preference
+            android:fragment="com.idoybh.yasr.LangFragment"
+            android:key="lang_pref"
+            android:summary="@string/lang_summary"
+            android:title="@string/lang_title"
+            app:icon="@drawable/baseline_language_24" />
+
+        <ListPreference
+            android:defaultValue="2"
+            android:entries="@array/ui_mode_entries"
+            android:entryValues="@array/ui_mode_values"
+            android:key="ui_mode"
+            android:title="@string/ui_mode_title"
+            app:icon="@drawable/baseline_dark_mode_24" />
+
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/sort_mode_entries"
+            android:entryValues="@array/sort_mode_values"
+            android:key="sort_mode"
+            android:title="@string/sort_mode_title"
+            app:icon="@drawable/baseline_filter_list_24" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/analytics_title">
+
+        <SwitchPreference
+            android:key="analytics"
+            android:title="@string/analytics_enabled_title"
+            app:defaultValue="true"
+            app:icon="@drawable/baseline_analytics_24"
+            app:summaryOff="@string/analytics_summary_off"
+            app:summaryOn="@string/analytics_summary_on" />
+
+        <Preference
+            android:key="analytics_reset"
+            android:title="@string/analytics_reset_title"
+            android:summary="@string/analytics_reset_summary"
+            app:icon="@drawable/baseline_analytics_24" />
+
+    </PreferenceCategory>
 </PreferenceScreen>

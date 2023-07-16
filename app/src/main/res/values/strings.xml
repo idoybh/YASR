@@ -98,6 +98,7 @@
     <string name="tooltip_about_telegram">Contact me via Telegram</string>
 
     <!-- Preferences -->
+    <string name="general_title">General</string>
     <string name="ui_mode_title">App Theme</string>
     <string name="sort_mode_title">Automatically sort by</string>
     <string name="lang_title">Language</string>
@@ -105,6 +106,13 @@
     <string name="currently_selected_lang">Currently selected language</string>
     <string name="default_lang">System default</string>
     <string name="lang_restart_msg">This operation may require an app restart\nAre you sure?</string>
+    <string name="analytics_title">Firebase Analytics</string>
+    <string name="analytics_enabled_title">Participate</string>
+    <string name="analytics_summary_on">Participate in anonymous basic analytics and crash reports</string>
+    <string name="analytics_summary_off">Do not share any information :(</string>
+    <string name="analytics_reset_title">Reset Analytics data</string>
+    <string name="analytics_reset_summary" formatted="false">Change the app instance ID and erase yet to be uploaded logs\nCurrent ID: %s</string>
+    <string name="analytics_reset_done">Analytics Data Reset</string>
 
     <!-- Array strings -->
     <string name="name">Name</string>

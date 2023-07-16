@@ -36,11 +36,19 @@
     <string name="input_sort_hint">מיין לפי</string>
     <string name="play_progress_description">התקדמות השמעת הקובץ</string>
     <string name="recording_list">רשימת ההקלטות</string>
+    <string name="general_title">כללי</string>
     <string name="lang_title">שפה</string>
     <string name="lang_summary">שנה את שפת האפליקציה</string>
     <string name="currently_selected_lang">השפה שנבחרה כעת</string>
     <string name="default_lang">ברירת מחדל מערכת</string>
     <string name="lang_restart_msg">פעולה זו עשויה לדרוש פתיחה מחדש של האפליקציה\nהאם להמשיך?</string>
+    <string name="analytics_title">סטטיסטיקות פיירבייס</string>
+    <string name="analytics_enabled_title">השתתפות</string>
+    <string name="analytics_summary_on">תרום סטטיסטיקות שימוש ודוחות קריסה בצורה אנונימית</string>
+    <string name="analytics_summary_off">לא לשתף שום אינפורמציה :(</string>
+    <string name="analytics_reset_title">אתחל מידע</string>
+    <string name="analytics_reset_summary" formatted="false">שנה את מזהה האפליקצייה ומחק דוחות שטרם עלו\nמזהה נוכחי: %s</string>
+    <string name="analytics_reset_done">Analytics Data Reset</string>
     <string name="name">שם</string>
     <string name="date">תאריך</string>
     <string name="duration">משך זמן</string>
