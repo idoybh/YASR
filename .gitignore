@@ -23,3 +23,6 @@ gradle/wrapper/dists/
 app/google-services.json
 app/debug/
 app/release/
+YASR.odp
+*.mp4
+*.txt
