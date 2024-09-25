@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         ));
         missingPerms.removeIf(perm -> getApplicationContext().checkSelfPermission(perm)
                 == PackageManager.PERMISSION_GRANTED);
-        if (missingPerms.size() != 0) {
+        if (!missingPerms.isEmpty()) {
             showCriticalExitDialog(R.string.permission_dialog_msg, (dialog, which) -> {
                 String[] arr = new String[missingPerms.size()];
                 arr = missingPerms.toArray(arr);
