@@ -38,12 +38,12 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
+import androidx.navigation.NavGraph;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.elevation.SurfaceColors;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.idoybh.yasr.databinding.ActivityMainBinding;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +53,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_RECORDING = "com.idoybh.yasr.RECORDING";
-    private static final int PERMISSION_REQUEST_CODE = 0x1A;
+    public static final int PERMISSION_REQUEST_CODE = 0x1A;
 
     private SharedPreferences mSharedPreferences;
     private FirebaseAnalytics mFirebaseAnalytics;
@@ -63,17 +63,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
-        // statusbar color
-        getWindow().setStatusBarColor(SurfaceColors.SURFACE_2.getColor(this));
 
         // permission setup
         List<String> missingPerms = new ArrayList<>(List.of(
@@ -88,10 +77,31 @@ public class MainActivity extends AppCompatActivity {
                 arr = missingPerms.toArray(arr);
                 requestPermissions(arr, PERMISSION_REQUEST_CODE);
             });
+            return;
         }
 
-        if (maybeResumeRecording(getIntent())) return;
-        maybeResumeRecordingPref();
+        createAfterPerms();
+    }
+
+    private void createAfterPerms() {
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+        NavGraph navGraph = navController.getNavInflater().inflate(R.navigation.nav_graph);
+
+        Bundle bundle = maybeResumeRecording(getIntent());;
+        if (bundle == null) {
+            bundle = maybeResumeRecordingPref();
+        }
+        if (bundle != null) {
+            navController.setGraph(navGraph, bundle);
+        } else {
+            navController.setGraph(navGraph);
+        }
+        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
     }
 
     @Override
@@ -100,26 +110,23 @@ public class MainActivity extends AppCompatActivity {
         maybeResumeRecording(intent);
     }
 
-    private boolean maybeResumeRecording(Intent intent) {
-        if (intent.hasExtra(EXTRA_RECORDING)) return false;
+    private Bundle maybeResumeRecording(Intent intent) {
+        if (intent.hasExtra(EXTRA_RECORDING)) return null;
         final String extra = intent.getStringExtra(EXTRA_RECORDING);
-        if (extra == null || extra.isEmpty()) return false;
+        if (extra == null || extra.isEmpty()) return null;
         // we resumed from the recording notification - resume showing
         Bundle bundle = new Bundle();
         bundle.putString(RecordFragment.BUNDLE_ARG1, extra);
-        Navigation.findNavController(this, R.id.nav_host_fragment_content_main)
-                .navigate(R.id.action_FirstFragment_to_RecordFragment, bundle);
-        return true;
+        return bundle;
     }
 
-    private void maybeResumeRecordingPref() {
+    private Bundle maybeResumeRecordingPref() {
         final String extra = getPrefs().getString(RecordingService.PREF_STARTED, null);
-        if (extra == null || extra.isEmpty()) return;
+        if (extra == null || extra.isEmpty()) return null;
         // we're in progress but the activity was killed - resume showing
         Bundle bundle = new Bundle();
         bundle.putString(RecordFragment.BUNDLE_ARG1, extra);
-        Navigation.findNavController(this, R.id.nav_host_fragment_content_main)
-                .navigate(R.id.action_FirstFragment_to_RecordFragment, bundle);
+        return bundle;
     }
 
     protected SharedPreferences getPrefs() {
@@ -137,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         for (Integer result : grantResults)
             if (result != PackageManager.PERMISSION_GRANTED)
                 finishAndRemoveTask();
+        createAfterPerms();
     }
 
     @Override

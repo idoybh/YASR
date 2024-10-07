@@ -15,6 +15,10 @@
  */
 package com.idoybh.yasr;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,6 +38,8 @@ import android.text.Editable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnticipateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
@@ -42,6 +48,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.idoybh.yasr.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
@@ -144,6 +151,7 @@ public class RecordFragment extends Fragment {
         binding.recordButton.setOnClickListener(this::onRecordingClicked);
         binding.saveButton.setOnClickListener(this::onSaveClicked);
         binding.discardButton.setOnClickListener(this::onDiscardClicked);
+        binding.mediaButton.setOnClickListener(this::onMediaClicked);
         binding.outputToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         binding.qualityToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> updateInfoText());
         requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
@@ -382,6 +390,11 @@ public class RecordFragment extends Fragment {
                 ctx, ctx.getString(R.string.are_you_sure_msg), listener);
     }
 
+    public void onMediaClicked(View view) {
+        NavHostFragment.findNavController(RecordFragment.this)
+                .navigate(R.id.action_RecordFragment_to_FirstFragment);
+    }
+
     private void setLimitMode(final int mode) {
         mLimitMode = mode;
         final float upperLimit = mode == LIMIT_MODE_TIME ? 300f : 20000f;
@@ -496,10 +509,21 @@ public class RecordFragment extends Fragment {
     };
 
     private void showSaveButton(final boolean show) {
-        binding.saveButton.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
-        binding.saveButton.setClickable(show);
-        binding.discardButton.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
-        binding.discardButton.setClickable(show);
+        if (show && binding.saveButton.getVisibility() == View.VISIBLE ||
+                !show && binding.saveButton.getVisibility() == View.INVISIBLE) {
+            return;
+        }
+        if (show) {
+            animateButtonTransition(
+                    List.of(binding.saveButton, binding.discardButton),
+                    List.of(binding.mediaButton)
+            );
+            return;
+        }
+        animateButtonTransition(
+                List.of(binding.mediaButton),
+                List.of(binding.saveButton, binding.discardButton)
+        );
     }
 
     private void updateRecordAndProgress(final int status) {
@@ -739,5 +763,47 @@ public class RecordFragment extends Fragment {
         final String res = text;
         mUiHandler.post(() ->
                 binding.timeText.setText(res));
+    }
+
+    private void animateButtonTransition(List<View> inViews, List<View> outViews) {
+        ArrayList<ObjectAnimator> animatorsList = new ArrayList<>();
+        for (View view : inViews) {
+            final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
+                    view.getLayoutParams();
+            final float viewHeight = view.getMeasuredHeight() + params.bottomMargin;
+            ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY",
+                    viewHeight, 0);
+            animator.setInterpolator(new OvershootInterpolator());
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    super.onAnimationStart(animation);
+                    view.setTranslationY(-viewHeight); // get the fab out of the screen before:
+                    view.setVisibility(View.VISIBLE); // making it visible
+                }
+            });
+            animatorsList.add(animator);
+        }
+        for (View view : outViews) {
+            final ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams)
+                    view.getLayoutParams();
+            final float viewHeight = view.getMeasuredHeight() + params.bottomMargin;
+            ObjectAnimator animator = ObjectAnimator.ofFloat(view, "translationY",
+                    0, viewHeight);
+            animator.setInterpolator(new AnticipateInterpolator());
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    super.onAnimationEnd(animation);
+                    view.setVisibility(View.INVISIBLE); // make the fab invisible before:
+                    view.setTranslationY(viewHeight); // putting it back to its place
+                }
+            });
+            animatorsList.add(animator);
+        }
+        AnimatorSet animSet = new AnimatorSet();
+        animSet.playTogether(animatorsList.toArray(new ObjectAnimator[0]));
+        animSet.setDuration(400);
+        animSet.start();
     }
 }

@@ -13,8 +13,8 @@ android {
         applicationId "com.idoybh.yasr"
         minSdk 33
         targetSdk 34
-        versionCode 10
-        versionName "1.25"
+        versionCode 11
+        versionName "1.26"
         resourceConfigurations += ["en", "iw"]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -42,13 +42,13 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.navigation:navigation-fragment:2.8.1'
-    implementation 'androidx.navigation:navigation-ui:2.8.1'
+    implementation 'androidx.navigation:navigation-fragment:2.8.2'
+    implementation 'androidx.navigation:navigation-ui:2.8.2'
     implementation 'com.google.android.gms:play-services-oss-licenses:17.1.0'
     implementation(platform('org.jetbrains.kotlin:kotlin-bom:1.9.0'))
     implementation 'androidx.preference:preference:1.2.1'
-    implementation 'com.google.firebase:firebase-analytics:22.1.0'
-    implementation platform('com.google.firebase:firebase-bom:33.3.0')
+    implementation 'com.google.firebase:firebase-analytics:22.1.2'
+    implementation platform('com.google.firebase:firebase-bom:33.4.0')
     implementation 'com.google.firebase:firebase-perf'
     implementation 'com.google.firebase:firebase-crashlytics'
     testImplementation 'junit:junit:4.13.2'

@@ -121,6 +121,7 @@
         android:hapticFeedbackEnabled="true"
         android:tooltipText="@string/tooltip_add_recording"
         android:backgroundTint="?colorPrimary"
+        android:visibility="gone"
         app:tint="?colorOnSurfaceInverse"
         app:borderWidth="0dp"
         app:fabCustomSize="64dp"
