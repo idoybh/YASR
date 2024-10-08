@@ -308,6 +308,7 @@ public class RecordFragment extends Fragment {
             }
             mRecorder = null;
         });
+        saveUserPrefs();
         super.onStop();
     }
 
@@ -336,26 +337,7 @@ public class RecordFragment extends Fragment {
             requireContext().bindService(intent, connection, Context.BIND_ABOVE_CLIENT);
 
             // save current settings as prefs for the next time we run
-            SharedPreferences.Editor editor = getPrefs().edit();
-            editor.putInt(PREF_INPUT_DEVICE, mAudioDevices.get(mSelectedDeviceIndex).getId());
-            if (checkedOutputID == R.id.outputBtnMP4)
-                editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
-            else if (checkedOutputID == R.id.outputBtnOGG)
-                editor.putString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
-            else if (checkedOutputID == R.id.outputBtnWAV)
-                editor.putString(PREF_OUTPUT_EXT, RecordingService.WAV_EXT);
-            for (int i = 0; i < binding.qualityToggle.getChildCount(); i++) {
-                final int id = binding.qualityToggle.getChildAt(i).getId();
-                if (id == binding.qualityToggle.getCheckedButtonId()) {
-                    editor.putInt(PREF_OUTPUT_QUALITY, i);
-                    break;
-                }
-            }
-            editor.putInt(PREF_CHANNELS,
-                    binding.channelToggle.getCheckedButtonId() == R.id.channelBtn1 ? 1 : 2);
-            editor.putInt(PREF_LIMIT_MODE, mLimitMode);
-            editor.putInt(PREF_LIMIT_VALUE, (int) binding.limitSlider.getValue());
-            editor.apply();
+            saveUserPrefs();
             return;
         }
         if (mService != null) {
@@ -763,6 +745,30 @@ public class RecordFragment extends Fragment {
         final String res = text;
         mUiHandler.post(() ->
                 binding.timeText.setText(res));
+    }
+
+    private void saveUserPrefs() {
+        final int checkedOutputID = binding.outputToggle.getCheckedButtonId();
+        SharedPreferences.Editor editor = getPrefs().edit();
+        editor.putInt(PREF_INPUT_DEVICE, mAudioDevices.get(mSelectedDeviceIndex).getId());
+        if (checkedOutputID == R.id.outputBtnMP4)
+            editor.putString(PREF_OUTPUT_EXT, RecordingService.MPEG_4_EXT);
+        else if (checkedOutputID == R.id.outputBtnOGG)
+            editor.putString(PREF_OUTPUT_EXT, RecordingService.OGG_EXT);
+        else if (checkedOutputID == R.id.outputBtnWAV)
+            editor.putString(PREF_OUTPUT_EXT, RecordingService.WAV_EXT);
+        for (int i = 0; i < binding.qualityToggle.getChildCount(); i++) {
+            final int id = binding.qualityToggle.getChildAt(i).getId();
+            if (id == binding.qualityToggle.getCheckedButtonId()) {
+                editor.putInt(PREF_OUTPUT_QUALITY, i);
+                break;
+            }
+        }
+        editor.putInt(PREF_CHANNELS,
+                binding.channelToggle.getCheckedButtonId() == R.id.channelBtn1 ? 1 : 2);
+        editor.putInt(PREF_LIMIT_MODE, mLimitMode);
+        editor.putInt(PREF_LIMIT_VALUE, (int) binding.limitSlider.getValue());
+        editor.apply();
     }
 
     private void animateButtonTransition(List<View> inViews, List<View> outViews) {
