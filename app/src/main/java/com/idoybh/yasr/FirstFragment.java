@@ -47,6 +47,7 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.MainThread;
@@ -108,6 +109,14 @@ public class FirstFragment extends Fragment {
     // to save animation calculations and do only once
     private float ACTION_FAB_HEIGHT;
 
+    private final OnBackPressedCallback onBackCallback = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            mAdapter.clearSelection();
+            onBackCallback.setEnabled(false);
+        }
+    };
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -117,6 +126,7 @@ public class FirstFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
 
         mMultiSelectFabs = new ArrayList<>(List.of(
                 binding.fabSelection,
@@ -241,6 +251,7 @@ public class FirstFragment extends Fragment {
                     : R.string.tooltip_toggle_selection_all);
             binding.fabSelection.setTooltipText(tooltip);
             binding.fabSelection.setContentDescription(tooltip);
+            onBackCallback.setEnabled(!selectionEmpty);
         });
         binding.recycler.setAdapter(mAdapter);
         setSortProgressRunning(false);

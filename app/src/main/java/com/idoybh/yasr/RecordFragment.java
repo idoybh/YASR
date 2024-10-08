@@ -663,9 +663,6 @@ public class RecordFragment extends Fragment {
 
     private void setBackEnabled(final boolean enabled) {
         onBackCallback.setEnabled(!enabled); // callback should be enabled when back is disabled
-        ActionBar bar = ((AppCompatActivity) requireActivity()).getSupportActionBar();
-        if (bar == null) return;
-        bar.setDisplayHomeAsUpEnabled(enabled);
     }
 
     private final StatusListener mStatusListener = new StatusListener();
