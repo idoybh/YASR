@@ -26,10 +26,17 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="preferenceTheme">@style/ThemeOverlay.App.Preference</item>
     </style>
     <style name="Theme.SoundRecorder.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+    </style>
+    <style name="ThemeOverlay.App.Preference" parent="PreferenceThemeOverlay">
+        <item name="switchPreferenceCompatStyle">@style/PreferenceMaterialSwitch</item>
+    </style>
+    <style name="PreferenceMaterialSwitch" parent="@style/Preference.SwitchPreferenceCompat.Material">
+        <item name="widgetLayout">@layout/preference_switch</item>
     </style>
     <style name="Theme.SoundRecorder.AppBarOverlay" parent="Theme.Material3.Dark"/>
     <style name="Theme.SoundRecorder.PopupOverlay" parent="Theme.Material3.Dark"/>

@@ -47,7 +47,7 @@
     <PreferenceCategory
         android:title="@string/analytics_title">
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             android:key="analytics"
             android:title="@string/analytics_enabled_title"
             app:defaultValue="true"

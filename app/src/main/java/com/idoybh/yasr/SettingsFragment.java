@@ -40,7 +40,7 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
-import androidx.preference.SwitchPreference;
+import androidx.preference.SwitchPreferenceCompat;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -69,7 +69,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
     private ListPreference mThemeListPref;
     private ListPreference mSortListPref;
     private Preference mLangPref;
-    private SwitchPreference mAnalyticsPref;
+    private SwitchPreferenceCompat mAnalyticsPref;
     private Preference mAnalyticsResetPref;
 
     @Override
