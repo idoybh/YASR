@@ -1,12 +1,40 @@
+/*
+ * Copyright (C) 2023 Ido Ben-Hur
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.idoybh.yasr;
 
 import android.app.UiModeManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.MenuProvider;
+import androidx.lifecycle.Lifecycle;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -14,8 +42,8 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreference;
 
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.util.HashMap;
@@ -43,6 +71,61 @@ public class SettingsFragment extends PreferenceFragmentCompat
     private Preference mLangPref;
     private SwitchPreference mAnalyticsPref;
     private Preference mAnalyticsResetPref;
+
+    @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            }
+
+            @Override
+            public void onPrepareMenu(@NonNull Menu menu) {
+                MenuItem item = menu.findItem(R.id.action_settings);
+                if (item == null) return;
+                item.setVisible(false);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.action_about) {
+                    View dialogView = LayoutInflater.from(getContext())
+                            .inflate(R.layout.about_dialog, null, false);
+                    TextView msg = dialogView.requireViewById(R.id.msgTxt);
+                    ImageButton gitBtn = dialogView.requireViewById(R.id.githubButton);
+                    ImageButton mailBtn = dialogView.requireViewById(R.id.mailButton);
+                    ImageButton telegramBtn = dialogView.requireViewById(R.id.telegramButton);
+                    msg.setText(Html.fromHtml(getString(R.string.about), Html.FROM_HTML_MODE_LEGACY));
+                    msg.setMovementMethod(LinkMovementMethod.getInstance());
+                    gitBtn.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(getString(R.string.about_github)));
+                        startActivity(intent);
+                    });
+                    mailBtn.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_SENDTO);
+                        intent.setData(Uri.parse("mailto:")); // only email apps should handle this
+                        intent.putExtra(Intent.EXTRA_EMAIL, new String[] {getString(R.string.about_mail)});
+                        intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.about_mail_title));
+                        startActivity(intent);
+                    });
+                    telegramBtn.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(getString(R.string.about_telegram)));
+                        startActivity(intent);
+                    });
+                    new MaterialAlertDialogBuilder(getContext())
+                            .setTitle(R.string.action_about)
+                            .setView(dialogView)
+                            .setPositiveButton(R.string.button_ok, (dialog, which) -> dialog.dismiss())
+                            .show();
+                    return true;
+                }
+                return false;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+    }
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
