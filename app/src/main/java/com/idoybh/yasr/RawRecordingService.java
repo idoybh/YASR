@@ -55,6 +55,7 @@ public class RawRecordingService extends RecordingService {
             updateListeners(mStatus);
             return;
         }
+        requestAudioFocus();
         int encoding = AudioFormat.ENCODING_PCM_16BIT;
         if (mOptions.getEncodingRate() == 32)
             encoding = AudioFormat.ENCODING_PCM_32BIT;
@@ -86,6 +87,7 @@ public class RawRecordingService extends RecordingService {
                 tmpFile.deleteOnExit();
             } catch (IOException e) {
                 e.printStackTrace();
+                returnAudioFocus();
                 updateListeners(Status.FAILED);
                 return;
             }
@@ -113,6 +115,7 @@ public class RawRecordingService extends RecordingService {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                returnAudioFocus();
                 updateListeners(Status.FAILED);
             }
         });
@@ -126,8 +129,10 @@ public class RawRecordingService extends RecordingService {
         if (mRecorder == null) return false;
         if (suspend) {
             mRecorder.stop();
+            returnAudioFocus();
             return true;
         }
+        requestAudioFocus();
         mRecorder.startRecording();
         return true;
     }
@@ -141,6 +146,7 @@ public class RawRecordingService extends RecordingService {
             mRecodingThread.quit();
             mRecodingThread = null;
         }
+        returnAudioFocus();
         if (tmpFile != null && tmpFile.delete()) {
             tmpFile = null;
             updateListeners(Status.IDLE);
@@ -158,6 +164,7 @@ public class RawRecordingService extends RecordingService {
             mRecodingThread.quit();
             mRecodingThread = null;
         }
+        returnAudioFocus();
         if (tmpFile == null || !tmpFile.exists()) {
             updateListeners(Status.FAILED);
             return;

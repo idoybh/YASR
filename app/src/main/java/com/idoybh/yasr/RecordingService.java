@@ -24,7 +24,10 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.Binder;
 import android.os.IBinder;
@@ -60,6 +63,8 @@ public class RecordingService extends Service {
     private final IBinder binder = new LocalBinder();
     protected RecordOptions mOptions;
     private MediaRecorder mRecorder;
+    private AudioManager mAudioManager;
+    private AudioFocusRequest mAudioFocusRequest;
     private SharedPreferences mSharedPreferences;
     private PowerManager.WakeLock mWakeLock;
     protected int mStatus = Status.IDLE;
@@ -153,17 +158,22 @@ public class RecordingService extends Service {
             if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED ||
                     what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED) {
                 updateListeners(Status.MAX_REACHED);
+                returnAudioFocus();
             } else {
                 updateListeners(Status.FAILED, extra);
+                returnAudioFocus();
             }
         });
         mRecorder.setOnErrorListener((mr, what, extra) -> updateListeners(Status.FAILED, extra));
         try {
+            requestAudioFocus();
             mRecorder.prepare();
             mRecorder.start();
         } catch (Exception e) {
             e.printStackTrace();
             updateListeners(Status.FAILED, -1);
+            returnAudioFocus();
+            return;
         }
         mStartTime = Calendar.getInstance();
         mDuration = 0;
@@ -180,6 +190,7 @@ public class RecordingService extends Service {
         }
         //noinspection ResultOfMethodCallIgnored
         mOptions.getFile().delete();
+        returnAudioFocus();
         updateListeners(Status.IDLE);
     }
 
@@ -191,6 +202,7 @@ public class RecordingService extends Service {
             mRecorder.release();
             mRecorder = null;
         }
+        returnAudioFocus();
         updateListeners(Status.IDLE);
     }
 
@@ -212,8 +224,10 @@ public class RecordingService extends Service {
         if (mRecorder == null) return false;
         if (suspend) {
             mRecorder.pause();
+            returnAudioFocus();
             return true;
         }
+        requestAudioFocus();
         mRecorder.resume();
         return true;
     }
@@ -295,6 +309,21 @@ public class RecordingService extends Service {
         return mSharedPreferences;
     }
 
+    private AudioManager getAudioManager() {
+        if (mAudioManager == null) {
+            mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            AudioAttributes attr = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(attr)
+                    .setAcceptsDelayedFocusGain(false)
+                    .build();
+        }
+        return mAudioManager;
+    }
+
     private static String getFileExtension(final File file) {
         final String name = file.getName();
         return name.substring(name.lastIndexOf(".") + 1);
@@ -302,6 +331,14 @@ public class RecordingService extends Service {
 
     protected String getExtraIntentString() {
         return EXTRA_INTENT;
+    }
+
+    protected void requestAudioFocus() {
+        getAudioManager().requestAudioFocus(mAudioFocusRequest);
+    }
+
+    protected void returnAudioFocus() {
+        getAudioManager().abandonAudioFocusRequest(mAudioFocusRequest);
     }
 
     public class LocalBinder extends Binder {
