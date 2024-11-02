@@ -14,15 +14,15 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.SoundRecorder" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.SoundRecorder" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@android:color/system_accent1_200</item>
-        <item name="colorPrimaryVariant">@android:color/system_accent1_300</item>
-        <item name="colorOnPrimary">@android:color/system_accent1_900</item>
+        <item name="colorPrimary">@color/material_dynamic_primary60</item>
+        <item name="colorPrimaryVariant">@color/material_dynamic_primary70</item>
+        <item name="colorOnPrimary">@color/material_dynamic_primary10</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@android:color/system_accent2_200</item>
-        <item name="colorSecondaryVariant">@android:color/system_accent2_300</item>
-        <item name="colorOnSecondary">@android:color/system_accent2_900</item>
+        <item name="colorSecondary">@color/material_dynamic_secondary60</item>
+        <item name="colorSecondaryVariant">@color/material_dynamic_secondary70</item>
+        <item name="colorOnSecondary">@color/material_dynamic_secondary10</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="preferenceTheme">@style/ThemeOverlay.App.Preference</item>
