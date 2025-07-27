@@ -358,22 +358,9 @@
             android:visibility="visible"
             android:tooltipText="@string/tooltip_input_noise"
             android:contentDescription="@string/tooltip_input_noise"
-            app:layout_constraintBottom_toTopOf="@+id/progressBar"
+            app:layout_constraintBottom_toTopOf="@+id/recordButton"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/micImage" />
-
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progressBar"
-            android:layout_width="0dp"
-            android:layout_height="31dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="16dp"
-            android:paddingVertical="16dp"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toTopOf="@+id/recordButton"
-            app:layout_constraintEnd_toStartOf="@+id/timeText"
-            app:layout_constraintStart_toStartOf="parent" />
 
         <TextView
             android:id="@+id/timeText"
@@ -384,7 +371,7 @@
             android:fontFamily="serif-monospace"
             android:gravity="center"
             android:textSize="16sp"
-            app:layout_constraintBottom_toTopOf="@+id/recordButton"
+            app:layout_constraintBottom_toTopOf="@+id/audioBar"
             app:layout_constraintEnd_toEndOf="parent" />
 
         <ImageView
@@ -396,7 +383,7 @@
             android:src="@drawable/baseline_mic_24"
             android:tooltipText="@string/tooltip_input_noise"
             android:contentDescription="@string/tooltip_input_noise"
-            app:layout_constraintBottom_toTopOf="@+id/progressBar"
+            app:layout_constraintBottom_toTopOf="@+id/recordButton"
             app:layout_constraintStart_toStartOf="parent"
             app:tint="?android:attr/colorControlNormal" />
 

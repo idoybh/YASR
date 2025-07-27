@@ -62,6 +62,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.idoybh.yasr.databinding.FragmentFirstBinding;
@@ -100,6 +101,7 @@ public class FirstFragment extends Fragment {
 
     private SharedPreferences mSharedPrefs;
     private FragmentFirstBinding binding;
+    private LinearProgressIndicator mProgressIndicator;
     private RecyclerAdapter mAdapter;
     private List<FloatingActionButton> mMultiSelectFabs;
     private int mSortSelection = ListView.INVALID_POSITION;
@@ -127,6 +129,8 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().getOnBackPressedDispatcher().addCallback(onBackCallback);
+
+        mProgressIndicator = requireActivity().requireViewById(R.id.progressIndicator);
 
         mMultiSelectFabs = new ArrayList<>(List.of(
                 binding.fabSelection,
@@ -992,9 +996,8 @@ public class FirstFragment extends Fragment {
         binding.fab.bringToFront();
         binding.sortMenu.setEnabled(!running);
         binding.sortButton.setEnabled(!running);
-        binding.sortIndicator.setIndeterminate(running);
-        if (!running) return;
-        binding.sortIndicator.bringToFront();
+        mProgressIndicator.setIndeterminate(true);
+        mProgressIndicator.setVisibility(running ? View.VISIBLE : View.GONE);
     }
 
     private SharedPreferences getPrefs() {

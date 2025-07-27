@@ -48,6 +48,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.idoybh.yasr.databinding.FragmentRecordBinding;
 import org.jetbrains.annotations.NotNull;
 
@@ -78,6 +79,7 @@ public class RecordFragment extends Fragment {
     private final Handler mUiHandler = FirstFragment.mUiHandler;
     private final Executor mExecutor = FirstFragment.mExecutor;
     private FragmentRecordBinding binding;
+    private LinearProgressIndicator mProgressIndicator;
     private MediaRecorder mRecorder;
     private SharedPreferences mSharedPrefs;
     private List<AudioDeviceInfo> mAudioDevices;
@@ -109,6 +111,8 @@ public class RecordFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        mProgressIndicator = requireActivity().requireViewById(R.id.progressIndicator);
 
         mOptionViews = Arrays.asList(
                 binding.deviceMenu,
@@ -356,7 +360,7 @@ public class RecordFragment extends Fragment {
         isStarted = false;
         isRawStarted = false;
         binding.timeText.setText("");
-        binding.progressBar.setVisibility(View.INVISIBLE);
+        mProgressIndicator.setVisibility(View.INVISIBLE);
     }
 
     public void onDiscardClicked(View view) {
@@ -382,12 +386,12 @@ public class RecordFragment extends Fragment {
         binding.limitSlider.setLabelFormatter(value -> {
             if (value < 1) {
                 mTotalDurationStr = null;
-                binding.progressBar.setIndeterminate(true);
+                mProgressIndicator.setIndeterminate(true);
                 return getString(R.string.unlimited_txt);
             }
             int val = (int) value;
-            binding.progressBar.setIndeterminate(false);
-            binding.progressBar.setMax(val);
+            mProgressIndicator.setIndeterminate(false);
+            mProgressIndicator.setMax(val);
             if (mLimitMode == LIMIT_MODE_TIME) {
                 if (value < 60) {
                     mTotalDurationStr = String.format(Locale.getDefault(),
@@ -527,7 +531,7 @@ public class RecordFragment extends Fragment {
         binding.recordButton.setImageResource(recordDrawableID);
         binding.recordButton.setTooltipText(recordTooltip);
         binding.recordButton.setContentDescription(recordTooltip);
-        binding.progressBar.setVisibility(progressVis);
+        mProgressIndicator.setVisibility(progressVis);
     }
 
     private void enableOptionViews(final boolean enable) {
@@ -731,11 +735,11 @@ public class RecordFragment extends Fragment {
             text += "/" + totalStr;
             final int finalSec = (int) sec;
             mUiHandler.post(() ->
-                    binding.progressBar.setProgress(finalSec, true));
+                    mProgressIndicator.setProgress(finalSec, true));
         } else if (mLimitMode == LIMIT_MODE_SIZE) {
             int size = Math.round(mCurrentRecordingFile.length() / 1000f /* bytes to kB */);
             mUiHandler.post(() ->
-                    binding.progressBar.setProgress(size, true));
+                    mProgressIndicator.setProgress(size, true));
         }
         final String res = text;
         mUiHandler.post(() ->
