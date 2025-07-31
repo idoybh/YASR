@@ -60,7 +60,8 @@
     <string name="button_yes">Yes</string>
     <string name="button_no">No</string>
     <string name="invalid_name">Invalid name</string>
-    <string name="mic_in_use">Microphone is currently in use by a different app</string>
+    <string name="mic_in_use">Microphone is currently in use by a different app, waiting…</string>
+    <string name="mic_in_use_timeout">Microphone is currently in use by a different app, giving up…</string>
     <string name="input_filter_hint">Filter</string>
     <string name="input_sort_hint">Sort by</string>
     <string name="play_progress_description">Current play progress</string>

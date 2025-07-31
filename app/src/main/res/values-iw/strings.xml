@@ -31,7 +31,8 @@
     <string name="button_yes">כן</string>
     <string name="button_no">לא</string>
     <string name="invalid_name">שם לא נתמך</string>
-    <string name="mic_in_use">המיקרופון בשימוש על ידי תוכנה אחרת</string>
+    <string name="mic_in_use">המיקרופון בשימוש על ידי תוכנה אחרת. ממתין…</string>
+    <string name="mic_in_use_timeout">המיקרופון בשימוש על ידי תוכנה אחרת. מוותר…</string>
     <string name="input_filter_hint">סינון</string>
     <string name="input_sort_hint">מיין לפי</string>
     <string name="play_progress_description">התקדמות השמעת הקובץ</string>

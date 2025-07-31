@@ -630,6 +630,10 @@ public class RecordFragment extends Fragment {
     }
 
     private synchronized void registerToMicAmp() {
+        mProgressIndicator.setIndeterminate(true);
+        mProgressIndicator.setVisibility(View.VISIBLE);
+        for (View v : mOptionViews) v.setEnabled(false);
+        binding.recordButton.setEnabled(false);
         if (mRecorder != null) {
             mRecorder.stop();
             mRecorder.release();
@@ -660,26 +664,58 @@ public class RecordFragment extends Fragment {
         mRecorder.setPreferredDevice(info);
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        try {
-            mTempAudioFile = File.createTempFile("tmp-noise", ".m4a", null);
-            mTempAudioFile.deleteOnExit();
-            mRecorder.setOutputFile(mTempAudioFile);
-            mRecorder.prepare();
-            mRecorder.start();
-            //noinspection ResultOfMethodCallIgnored
-            mTempAudioFile.delete(); // delete when we stop writing to it
-        } catch (RuntimeException | IOException e) {
-            e.printStackTrace();
-            mRecorder = null;
-            Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
-            for (View v : mOptionViews) v.setEnabled(false);
-            binding.outputToggle.setEnabled(true);
-            binding.recordButton.setEnabled(false);
-            return;
-        }
-        binding.audioBar.setMin(mRecorder.getMaxAmplitude() /* 0 */);
-        binding.audioBar.setMax(10000); // consider making dynamic again
-        mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
+        mExecutor.execute(() -> {
+            boolean notified = false;
+            int count = 0;
+            while (true) {
+                try {
+                    mTempAudioFile = File.createTempFile("tmp-noise", ".m4a", null);
+                    mTempAudioFile.deleteOnExit();
+                    mRecorder.setOutputFile(mTempAudioFile);
+                    mRecorder.prepare();
+                    mRecorder.start();
+                    //noinspection ResultOfMethodCallIgnored
+                    mTempAudioFile.delete(); // delete when we stop writing to it
+                } catch (RuntimeException | IOException e) {
+                    e.printStackTrace();
+                    if (!notified) {
+                        mUiHandler.post(() -> {
+                            Toast.makeText(requireContext(), getString(R.string.mic_in_use), Toast.LENGTH_LONG).show();
+                        });
+                        notified = true;
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    count++;
+                    if (count < 10) {
+                        continue;
+                    }
+                    mRecorder = null;
+                    mUiHandler.post(() -> {
+                        Toast.makeText(requireContext(), getString(R.string.mic_in_use_timeout), Toast.LENGTH_LONG).show();
+                        updateAudioDevices();
+                    });
+                }
+                mUiHandler.post(() -> {
+                    if (mRecorder != null) {
+                        binding.audioBar.setMin(mRecorder.getMaxAmplitude() /* 0 */);
+                        binding.audioBar.setMax(10000); // consider making dynamic again
+                        mNoiseTimer.scheduleAtFixedRate(mNoiseTimerTask, 0, 75);
+                    } else {
+                        int next = mSelectedDeviceIndex - 1;
+                        if (next < 0) next = mAudioDevices.size() - 1;
+                        binding.deviceMenu.setSelection(next);
+                    }
+                    mProgressIndicator.setVisibility(View.INVISIBLE);
+                    for (View v : mOptionViews) v.setEnabled(true);
+                    binding.recordButton.setEnabled(true);
+                });
+                break;
+            }
+        });
     }
 
     private void setBackEnabled(final boolean enabled) {
