@@ -192,6 +192,12 @@ public class RecordFragment extends Fragment {
         requireContext().bindService(intent, connection, Context.BIND_ABOVE_CLIENT);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateAudioDevices();
+    }
+
     private final OnBackPressedCallback onBackCallback = new OnBackPressedCallback(false) {
         @Override
         public void handleOnBackPressed() {
