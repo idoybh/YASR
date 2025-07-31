@@ -73,6 +73,21 @@ public class RecordFragment extends Fragment {
     private static final String PREF_LIMIT_MODE = "limit_mode";
     private static final String PREF_LIMIT_VALUE = "limit_value";
 
+    private static final List<Integer> sAllowedDeviceTypes = new ArrayList<>(List.of(
+            AudioDeviceInfo.TYPE_BUILTIN_MIC,
+            AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_USB_HEADSET,
+            AudioDeviceInfo.TYPE_BLE_HEADSET,
+            AudioDeviceInfo.TYPE_LINE_ANALOG,
+            AudioDeviceInfo.TYPE_LINE_DIGITAL,
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_USB_DEVICE,
+            AudioDeviceInfo.TYPE_AUX_LINE,
+            AudioDeviceInfo.TYPE_HEARING_AID,
+            AudioDeviceInfo.TYPE_HDMI_EARC
+    ));
+
     public static final int LIMIT_MODE_SIZE = 0;
     public static final int LIMIT_MODE_TIME = 1;
 
@@ -225,9 +240,7 @@ public class RecordFragment extends Fragment {
         boolean builtInAdded = false;
         for (AudioDeviceInfo device : allDevices) {
             final int type = device.getType();
-            if (type == AudioDeviceInfo.TYPE_REMOTE_SUBMIX) continue;
-            if (type == AudioDeviceInfo.TYPE_TELEPHONY) continue;
-            if (type == AudioDeviceInfo.TYPE_FM_TUNER) continue;
+            if (!sAllowedDeviceTypes.contains(type)) continue;
             AudioDeviceInfo cDevice = device;
             AudioDeviceInfo found = null;
             for (AudioDeviceInfo device2 : mAudioDevices) {
